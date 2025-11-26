@@ -129,7 +129,8 @@
         };
 
         // --- REAL BACKEND HANDLER ---
-        const callBackend = async (message, userMode, currentContext) => {
+        // NOTE: now accepts `history` so the backend can see the full conversation.
+        const callBackend = async (message, userMode, currentContext, history) => {
             // 1. Check if Backend is Configured
             if (!BACKEND_URL || BACKEND_URL.length < 10) {
                 console.log("Using Mock AI (Backend URL missing)");
@@ -140,7 +141,7 @@
 
             // 2. Real Fetch Call
             try {
-                // Google Apps Script requires text/plain to avoid CORS Preflight OPTIONS request issues in some browsers
+                // Google Apps Script requires text/plain to avoid CORS preflight in some setups
                 const response = await fetch(BACKEND_URL, {
                     method: "POST",
                     mode: "cors", 
@@ -149,7 +150,8 @@
                         action: "chat",
                         mode: userMode,
                         message: message,
-                        context: currentContext
+                        context: currentContext,
+                        history: history || []   // 👈 pass full chat history
                     })
                 });
                 
@@ -239,11 +241,16 @@
                 }]);
             }, [userMode]);
 
-            useEffect(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), [messages]);
+            useEffect(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, [messages]);
 
             const handleSend = async (textOverride = null) => {
                 const text = textOverride || input;
                 if (!text.trim()) return;
+
+                // history = all messages BEFORE this new user message
+                const outgoingHistory = messages;
 
                 const newMsgs = [...messages, { role: 'user', text: text }];
                 setMessages(newMsgs);
@@ -251,8 +258,8 @@
                 setIsLoading(true);
 
                 try {
-                    // CALL THE UNIFIED BACKEND HANDLER
-                    const response = await callBackend(text, userMode, jobContext);
+                    // CALL THE UNIFIED BACKEND HANDLER, passing history
+                    const response = await callBackend(text, userMode, jobContext, outgoingHistory);
                     
                     setMessages(prev => [...prev, { 
                         role: 'ai', 
@@ -265,6 +272,7 @@
                     if (response.newContext) setJobContext(response.newContext);
 
                 } catch (error) {
+                    console.error(error);
                     setMessages(prev => [...prev, { role: 'ai', text: "Connection glitch. Try again?" }]);
                 } finally {
                     setIsLoading(false);
@@ -280,8 +288,10 @@
                                 <div className="w-8 h-8 bg-[#FFE135] rounded-lg border-2 border-black flex items-center justify-center font-bold text-xl">N</div>
                                 <span className="brand-font text-xl tracking-tight">NeighborTask</span>
                             </div>
-                            <button onClick={() => setUserMode(userMode === 'customer' ? 'helper' : 'customer')}
-                                className={`px-3 py-1 text-sm font-bold border-2 border-black rounded-full transition-all ${userMode === 'customer' ? 'bg-black text-white hover:bg-gray-800' : 'bg-[#FFE135] text-black hover:bg-[#FFD700]'}`}>
+                            <button
+                                onClick={() => setUserMode(userMode === 'customer' ? 'helper' : 'customer')}
+                                className={`px-3 py-1 text-sm font-bold border-2 border-black rounded-full transition-all ${userMode === 'customer' ? 'bg-black text-white hover:bg-gray-800' : 'bg-[#FFE135] text-black hover:bg-[#FFD700]'}`}
+                            >
                                 {userMode === 'customer' ? 'Switch to Helper Mode' : 'Back to Customer Mode'}
                             </button>
                         </div>
@@ -294,8 +304,17 @@
                             <div className="mb-6">
                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Popular Services</p>
                                 <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                                    {[{i:<i data-lucide="snowflake"></i>,l:"Snow Removal",t:"I need snow removal"}, {i:<i data-lucide="sparkles"></i>,l:"Cleaning",t:"I need house cleaning"}, {i:<i data-lucide="hammer"></i>,l:"Handyman",t:"I need a handyman"}, {i:<i data-lucide="flower"></i>,l:"Lawn",t:"I need lawn mowing"}].map((s,i) => (
-                                        <button key={i} onClick={() => handleSend(s.t)} className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-nano-black rounded-full hover:bg-[#FFE135] transition-colors whitespace-nowrap">
+                                    {[
+                                        {i:<i data-lucide="snowflake"></i>,l:"Snow Removal",t:"I need snow removal"},
+                                        {i:<i data-lucide="sparkles"></i>,l:"Cleaning",t:"I need house cleaning"},
+                                        {i:<i data-lucide="hammer"></i>,l:"Handyman",t:"I need a handyman"},
+                                        {i:<i data-lucide="flower"></i>,l:"Lawn",t:"I need lawn mowing"}
+                                    ].map((s,i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => handleSend(s.t)}
+                                            className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-nano-black rounded-full hover:bg-[#FFE135] transition-colors whitespace-nowrap"
+                                        >
                                             {s.i}<span className="font-medium">{s.l}</span>
                                         </button>
                                     ))}
@@ -313,24 +332,52 @@
                                         {msg.visual === 'driveway' && <DrivewayVisual />}
                                         {msg.visual === 'lawn' && <LawnVisual />}
                                         {msg.visual === 'room' && <RoomVisual />}
-                                        {msg.link && <a href={msg.link} target="_blank" className="mt-3 block w-full text-center py-2 bg-black text-white font-bold rounded-lg hover:opacity-90">Open Secure Link &rarr;</a>}
+                                        {msg.link && (
+                                            <a
+                                                href={msg.link}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="mt-3 block w-full text-center py-2 bg-black text-white font-bold rounded-lg hover:opacity-90"
+                                            >
+                                                Open Secure Link &rarr;
+                                            </a>
+                                        )}
                                     </div>
                                 </div>
                             ))}
-                            {isLoading && <div className="flex justify-start w-full mb-4"><div className="chat-bubble-ai p-4 flex gap-1"><div className="w-2 h-2 bg-gray-400 rounded-full loader-dot"></div><div className="w-2 h-2 bg-gray-400 rounded-full loader-dot"></div><div className="w-2 h-2 bg-gray-400 rounded-full loader-dot"></div></div></div>}
+                            {isLoading && (
+                                <div className="flex justify-start w-full mb-4">
+                                    <div className="chat-bubble-ai p-4 flex gap-1">
+                                        <div className="w-2 h-2 bg-gray-400 rounded-full loader-dot"></div>
+                                        <div className="w-2 h-2 bg-gray-400 rounded-full loader-dot"></div>
+                                        <div className="w-2 h-2 bg-gray-400 rounded-full loader-dot"></div>
+                                    </div>
+                                </div>
+                            )}
                             <div ref={messagesEndRef} />
                         </div>
 
                         {/* Input */}
                         <div className="card-nano p-2 flex items-center gap-2 sticky bottom-4">
-                            <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                            <input
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                                 placeholder={userMode === 'customer' ? "Type your address and task..." : "Type your answer..."}
-                                className="flex-1 p-3 outline-none text-lg bg-transparent" />
-                            <button onClick={() => handleSend()} className="btn-banana w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0">
+                                className="flex-1 p-3 outline-none text-lg bg-transparent"
+                            />
+                            <button
+                                onClick={() => handleSend()}
+                                className="btn-banana w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                            >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                             </button>
                         </div>
-                        <p className="text-center text-xs text-gray-400 mt-2"><span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>Active in Naperville, IL • Verified Neighbors</p>
+                        <p className="text-center text-xs text-gray-400 mt-2">
+                            <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                            Active in Naperville, IL • Verified Neighbors
+                        </p>
                     </main>
                 </div>
             );
