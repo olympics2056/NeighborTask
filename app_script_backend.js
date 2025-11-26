@@ -92,16 +92,19 @@ function normalizeChatData(input) {
 
   return data;
 }
-
 // =======================
 // CONFIG
 // =======================
+
+// Make sure GEMINI_API_KEY and SYSTEM_PROMPT are defined somewhere above this.
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+
+// Default and fallback models
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const GEMINI_MODELS = [
-  "gemini-1.5-flash",
-  "gemini-1.5-pro"
+  "gemini-2.5-flash",
+  "gemini-2.5-pro"
 ];
-// Make sure GEMINI_API_KEY and SYSTEM_PROMPT are defined somewhere above.
 
 /**
  * ✅ Helper: Normalize incoming data
@@ -152,6 +155,7 @@ function callGeminiWithFallback(rawData) {
 
   for (const model of GEMINI_MODELS) {
     try {
+      Logger.log("Trying model: " + model);
       const result = callGeminiAPI(data, model);
       if (result) return result; // Success
     } catch (e) {
@@ -168,14 +172,18 @@ function callGeminiWithFallback(rawData) {
 
 /**
  * LOW-LEVEL GEMINI CALLER
+ * - modelName is OPTIONAL; falls back to DEFAULT_GEMINI_MODEL if missing
  */
 function callGeminiAPI(rawData, modelName) {
   var data = normalizeChatData(rawData);
 
+  // 🔴 THIS IS THE KEY FIX:
+  var model = modelName || DEFAULT_GEMINI_MODEL;
+
   const url =
     GEMINI_API_BASE +
     "/models/" +
-    modelName +
+    model +
     ":generateContent?key=" +
     GEMINI_API_KEY;
 
@@ -242,6 +250,3 @@ function callGeminiAPI(rawData, modelName) {
 }
 
 
-  // This is expected to be JSON per SYSTEM_PROMPT + response_mime_type
-  return JSON.parse(aiRawText);
-}
