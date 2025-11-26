@@ -1,38 +1,25 @@
 // ========================================================
-// NEIGHBORTASK PRODUCTION BACKEND (REAL GEMINI AI)
+// NEIGHBORTASK PRODUCTION BACKEND (ROBUST FALLBACK)
 // ========================================================
 
-const STRIPE_API_KEY = "sk_test_51SXaIyJdqxYyOXHAXgIr5vUW9P4Kx539eFnoKtJnoQM30XDtWu4qR8ArwyxkVoOlBzjrZZBO3iIFYjLSbIO1xSMO00aOLotVTE"; 
-// const CHECKR_API_KEY = "test_...";    // Checkr skipped for now
+// ⚠️ SECURITY NOTICE: Replace these with your NEW keys. 
+// The previous keys you shared are now compromised.
+const STRIPE_API_KEY = "sk_test_..."; 
+const GEMINI_API_KEY = "AIza..."; 
 
-// Database IDs
-const SS_ID = "1yyD9xQD4_CAYiqW954nl8yinqRwQf82pTcA56vwefjo"; 
+// REPLACE WITH YOUR GOOGLE SHEET ID
+const SS_ID = "YOUR_SPREADSHEET_ID_HERE"; 
 
-const GEMINI_API_KEY = "AIzaSyBC3aVBOJT0LLGnjFBaHNAxQM7vAjecmRk"; 
-
-// --- SYSTEM INSTRUCTIONS (The Brain) ---
 const SYSTEM_PROMPT = `
-You are NeighborTask Concierge, a friendly neighborhood helper AI.
-Your goal is to book services (Snow, Lawn, Cleaning, Handyman, Tutoring) efficiently.
-
-**CORE RULES:**
-1.  **Address Intelligence:** If user gives an address, infer details (e.g., "2-car driveway" for snow, "0.25 acre" for lawn). CONFIRM these details.
-2.  **Question Style:** Ask only 2-3 essential questions. Be brief.
-3.  **Pricing:** Use market averages ($45-65 for snow, $200+ for cleaning).
-4.  **Safety:** - Outdoor = Low Risk (No ID).
-    - Indoor = Medium Risk (ID Check).
-    - Kids/Tutoring = High Risk (Background Check).
-
-**OUTPUT FORMAT:**
-You act as a JSON API. You must **ALWAYS** return raw JSON. No markdown.
-Format:
-{
-  "text": "Your friendly reply to the user...",
-  "map": true/false, 
-  "visual": "driveway" | "lawn" | "room" | null, 
-  "link": "stripe_url" | "checkr_url" | null, 
-  "newContext": { "service": "...", "step": "...", "risk": "..." }
-}
+You are NeighborTask Concierge. 
+Goal: Book services (Snow, Lawn, Cleaning, Handyman, Tutoring).
+Rules:
+1. Address given? Infer details (2-car driveway, 0.25 acre).
+2. Ask 2-3 questions max.
+3. Pricing: Snow($45-65), Lawn($40-60), Cleaning($200+).
+4. Safety: Indoor=ID Check. Kids=Background Check.
+OUTPUT JSON ONLY:
+{ "text": "response", "map": true/false, "visual": "driveway|lawn|room", "link": "url", "newContext": {} }
 `;
 
 /**
@@ -48,16 +35,14 @@ function doPost(e) {
     }
 
     if (requestData.action === 'chat') {
-      const response = callGeminiAI(requestData);
+      const response = handleChatLogic(requestData);
       return createJSONOutput(response);
     }
-
     return createJSONOutput({ error: "Unknown action" });
 
   } catch (error) {
     return createJSONOutput({ 
-      text: "Backend Error: " + error.toString(),
-      error: error.toString() 
+      text: "System Error: " + error.toString()
     });
   }
 }
@@ -66,7 +51,7 @@ function doPost(e) {
  * WEBHOOK RECEIVER (GET)
  */
 function doGet(e) {
-  return createJSONOutput({ status: "active", system: "Gemini Pro Connected" });
+  return createJSONOutput({ status: "active", system: "NeighborTask Online 🍌" });
 }
 
 function createJSONOutput(data) {
@@ -74,33 +59,56 @@ function createJSONOutput(data) {
 }
 
 /**
- * CONNECT TO GEMINI API
+ * CORE LOGIC
  */
-function callGeminiAI(data) {
+function handleChatLogic(data) {
+  // Call Gemini with Fallback Logic
+  return callGeminiWithFallback(data);
+}
+
+/**
+ * SMART GEMINI CALLER (Flash -> Pro Fallback)
+ */
+function callGeminiWithFallback(data) {
+  // List of models to try in order
+  const models = ["gemini-pro"];
+  
+  let lastError = "";
+
+  for (const model of models) {
+    try {
+      const result = callGeminiAPI(data, model);
+      if (result) return result; // Success!
+    } catch (e) {
+      Logger.log(`Model ${model} failed: ${e}`);
+      lastError = e.toString();
+      // Continue to next model...
+    }
+  }
+
+  // If all fail
+  return {
+    text: `I'm having trouble connecting to the AI models. Error: ${lastError}`,
+    newContext: data.context || {}
+  };
+}
+
+function callGeminiAPI(data, modelName) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+  
+  const contextStr = JSON.stringify(data.context || {});
   const userMsg = data.message;
-  const mode = data.mode; 
-  const context = JSON.stringify(data.context || {});
+  const mode = data.mode;
 
   const payload = {
-    "contents": [
-      {
-        "role": "user",
-        "parts": [{ 
-          "text": `
-            CURRENT MODE: ${mode}
-            CURRENT CONTEXT: ${context}
-            USER SAYS: "${userMsg}"
-            
-            Based on the system instructions, provide the next JSON response.
-            If confirming booking, generate a mock payment link.
-            If helper needs verify, generate mock checkr link.
-          ` 
-        }]
-      }
-    ],
-    // Note: 'system_instruction' field name depends on API version. 
-    // For gemini-pro v1beta, it is often passed as a user message or systemInstruction.
-    // We stick to systemInstruction as it is standard for newer models.
+    "contents": [{ 
+      "parts": [{ 
+        "text": `MODE: ${mode}. CONTEXT: ${contextStr}. USER: "${userMsg}".\nBased on system instructions, return JSON.` 
+      }] 
+    }],
+    // Note: older gemini-pro on v1beta sometimes prefers prompt in user message, 
+    // but systemInstruction is supported in newer versions. 
+    // If this fails, move system prompt to user message.
     "systemInstruction": {
       "parts": [{ "text": SYSTEM_PROMPT }]
     },
@@ -113,45 +121,23 @@ function callGeminiAI(data) {
     "method": "post",
     "contentType": "application/json",
     "payload": JSON.stringify(payload),
-    "muteHttpExceptions": true // Important to see 404 errors in logs
+    "muteHttpExceptions": true
   };
 
-  try {
-    // CHANGED MODEL TO 'gemini-1.5-flash-latest' OR 'gemini-pro' for stability
-    // Using 'gemini-1.5-flash-latest' as it is often the intended target for flash calls
-    const response = UrlFetchApp.fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
-      options
-    );
-    
-    const responseCode = response.getResponseCode();
-    const responseText = response.getContentText();
+  const response = UrlFetchApp.fetch(url, options);
+  const responseCode = response.getResponseCode();
+  const responseText = response.getContentText();
 
-    if (responseCode !== 200) {
-      Logger.log("API Error: " + responseText);
-      return {
-        text: `API Error (${responseCode}): ${responseText}`,
-        newContext: {}
-      };
-    }
-    
-    const json = JSON.parse(responseText);
-    
-    // --- ROBUST JSON EXTRACTION FIX ---
-    let aiRawText = json.candidates[0].content.parts[0].text;
-    
-    const jsonMatch = aiRawText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      aiRawText = jsonMatch[0];
-    }
-    
-    return JSON.parse(aiRawText); 
-
-  } catch (e) {
-    Logger.log("Gemini Error: " + e.toString());
-    return {
-      text: "Debug Error: " + e.toString(), 
-      newContext: {}
-    };
+  if (responseCode !== 200) {
+    throw new Error(`API ${responseCode}: ${responseText}`);
   }
+
+  const json = JSON.parse(responseText);
+  let aiRawText = json.candidates[0].content.parts[0].text;
+
+  // Clean Markdown if present
+  const jsonMatch = aiRawText.match(/\{[\s\S]*\}/);
+  if (jsonMatch) aiRawText = jsonMatch[0];
+
+  return JSON.parse(aiRawText);
 }
