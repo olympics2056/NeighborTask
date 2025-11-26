@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeighborTask Concierge</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --banana-yellow: #FFE135;
+            --banana-peel: #FFD700;
+            --nano-black: #1A1A1A;
+            --paper-white: #FAFAFA;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--paper-white); color: var(--nano-black); }
+        h1, h2, h3, .brand-font { font-family: 'Space Grotesk', sans-serif; }
+        
+        .btn-banana {
+            background-color: var(--banana-yellow); color: var(--nano-black);
+            border: 2px solid var(--nano-black); box-shadow: 4px 4px 0px var(--nano-black);
+            transition: all 0.1s ease;
+        }
+        .btn-banana:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px var(--nano-black); }
+        
+        .card-nano { background: white; border: 2px solid var(--nano-black); border-radius: 16px; box-shadow: 6px 6px 0px rgba(0,0,0,0.1); }
+        
+        .chat-bubble-ai { background: white; border: 2px solid var(--nano-black); border-radius: 16px 16px 16px 0px; box-shadow: 2px 2px 0px rgba(0,0,0,0.05); }
+        .chat-bubble-user { background: var(--banana-yellow); color: var(--nano-black); border: 2px solid var(--nano-black); border-radius: 16px 16px 0px 16px; box-shadow: 2px 2px 0px rgba(0,0,0,0.1); }
+        
+        .loader-dot { animation: bounce 1.4s infinite ease-in-out both; }
+        .loader-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loader-dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        .map-container { height: 200px; width: 100%; border-radius: 12px; border: 2px solid var(--nano-black); margin-top: 12px; z-index: 1; }
+        
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // =================================================================
+        // ⚙️ CONFIGURATION: CONNECT YOUR BACKEND HERE
+        // =================================================================
+        
+        // 1. Deploy your Google Apps Script as a Web App (Exec mode).
+        // 2. Paste the URL inside the quotes below.
+        // 3. If empty, the site runs in "Demo Mode" using the internal mock.
+        
+        const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwESAzHEtVjad_ldprZpoFAuI8de_j8YqqkRn0CWS_68NzBRRvlNVaaTawwcORIdHIy/exec"; 
+        
+        // Example Format: "https://script.google.com/macros/s/AKfycbx.../exec"
+        // =================================================================
+
+
+        // --- VISUAL COMPONENTS (SVG) ---
+        const DrivewayVisual = () => (
+            <div className="my-3 p-4 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                <div className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide text-center">Inferred Property Layout</div>
+                <svg viewBox="0 0 200 100" className="w-full h-auto">
+                    <rect x="60" y="10" width="80" height="40" fill="#eee" stroke="black" strokeWidth="2"/>
+                    <path d="M 80 50 L 80 90 L 120 90 L 120 50" fill="#ddd" stroke="black" strokeWidth="2" strokeDasharray="4 2"/>
+                    <text x="100" y="35" textAnchor="middle" fontSize="10" fontWeight="bold">Your Home</text>
+                    <text x="100" y="75" textAnchor="middle" fontSize="8">2-Car Driveway</text>
+                    <rect x="85" y="55" width="12" height="25" rx="2" fill="#FFE135" stroke="black"/>
+                    <rect x="103" y="55" width="12" height="25" rx="2" fill="#FFE135" stroke="black"/>
+                </svg>
+            </div>
+        );
+
+        const LawnVisual = () => (
+            <div className="my-3 p-4 bg-green-50 rounded-xl border-2 border-dashed border-green-300">
+                <div className="text-xs font-bold text-green-600 mb-2 uppercase tracking-wide text-center">Lot Size Estimation</div>
+                <svg viewBox="0 0 200 100" className="w-full h-auto">
+                    <rect x="20" y="10" width="160" height="80" fill="#e6fffa" stroke="#059669" strokeWidth="2"/>
+                    <rect x="80" y="35" width="40" height="30" fill="white" stroke="black" strokeWidth="2"/>
+                    <text x="100" y="25" textAnchor="middle" fontSize="10" fill="#059669" fontWeight="bold">0.25 Acre Lot</text>
+                    <path d="M 30 20 L 35 15 M 40 80 L 45 75 M 150 30 L 155 25" stroke="#059669" strokeWidth="2"/>
+                </svg>
+            </div>
+        );
+
+        const RoomVisual = () => (
+            <div className="my-3 p-4 bg-blue-50 rounded-xl border-2 border-dashed border-blue-300">
+                <div className="text-xs font-bold text-blue-500 mb-2 uppercase tracking-wide text-center">Standard Clean Scope</div>
+                <div className="flex justify-around text-center text-xs mt-2">
+                    <div><div className="w-10 h-10 bg-white border-2 border-blue-200 rounded-lg flex items-center justify-center mb-1 mx-auto">🛏️</div>3 Bed</div>
+                    <div><div className="w-10 h-10 bg-white border-2 border-blue-200 rounded-lg flex items-center justify-center mb-1 mx-auto">🛁</div>2 Bath</div>
+                    <div><div className="w-10 h-10 bg-white border-2 border-blue-200 rounded-lg flex items-center justify-center mb-1 mx-auto">🛋️</div>Living</div>
+                </div>
+            </div>
+        );
+
+        const CommunityMap = ({ lat, lng, label }) => {
+            const mapRef = useRef(null);
+            useEffect(() => {
+                if (!mapRef.current) return;
+                const defaultLat = 41.7508; 
+                const defaultLng = -88.1535;
+                const map = L.map(mapRef.current).setView([defaultLat, defaultLng], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+                L.circle([defaultLat, defaultLng], { color: '#FFE135', fillColor: '#FFE135', fillOpacity: 0.4, radius: 1200 }).addTo(map);
+                L.marker([defaultLat, defaultLng]).addTo(map).bindPopup(label || "Verified Zone").openPopup();
+                return () => { map.remove(); };
+            }, []);
+            return (
+                <div className="relative">
+                    <div ref={mapRef} className="map-container"></div>
+                    <div className="absolute bottom-2 right-2 bg-white px-2 py-1 rounded border border-black text-xs font-bold shadow-sm z-[500]">📍 12 Verified Neighbors</div>
+                </div>
+            );
+        };
+
+        // --- REAL BACKEND HANDLER ---
+        const callBackend = async (message, userMode, currentContext) => {
+            // 1. Check if Backend is Configured
+            if (!BACKEND_URL || BACKEND_URL.length < 10) {
+                console.log("Using Mock AI (Backend URL missing)");
+                return userMode === 'customer' 
+                    ? mockCustomerAI(message, null, currentContext) 
+                    : mockHelperAI(message, null, currentContext);
+            }
+
+            // 2. Real Fetch Call
+            try {
+                // Google Apps Script requires text/plain to avoid CORS Preflight OPTIONS request issues in some browsers
+                const response = await fetch(BACKEND_URL, {
+                    method: "POST",
+                    mode: "cors", 
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({
+                        action: "chat",
+                        mode: userMode,
+                        message: message,
+                        context: currentContext
+                    })
+                });
+                
+                const data = await response.json();
+                return data; // Expected format: { text, link, map, visual, newContext }
+
+            } catch (error) {
+                console.error("Backend Error:", error);
+                return { text: "⚠️ Connection error. I'm having trouble reaching the neighborhood server. Please try again." };
+            }
+        };
+
+        // --- MOCK FALLBACKS (For Testing) ---
+        // Kept compact for fallback logic
+        const mockHelperAI = async (msg, h, ctx) => {
+            return new Promise(r => setTimeout(() => {
+                let res = { text: "", map: false, newContext: ctx || {} };
+                const low = msg.toLowerCase();
+                
+                if (!ctx?.step) {
+                    res.text = "Welcome! 🍌 First, what is your Name and Neighborhood?";
+                    res.newContext = { step: "name_loc" };
+                } else if (ctx.step === "name_loc") {
+                    res.text = "Great! I've pinned your location. What services can you offer? (Snow, Cleaning, Tutoring)";
+                    res.map = true; res.newContext.step = "skills";
+                } else if (ctx.step === "skills") {
+                    if (low.includes("clean") || low.includes("tutor")) {
+                        res.text = "For indoor/childcare tasks, we need verification. Ready to check ID?";
+                        res.newContext.step = "verify"; res.newContext.risk = "High";
+                    } else {
+                        res.text = "Outdoor tasks are Low Risk! What is your availability?";
+                        res.newContext.step = "avail";
+                    }
+                } else if (ctx.step === "verify") {
+                    res.text = "Please verify here:"; res.link = "#checkr"; res.newContext.step = "avail";
+                } else {
+                    res.text = "You're all set! Watch for texts. 🍌";
+                }
+                r(res);
+            }, 1000));
+        };
+
+        const mockCustomerAI = async (msg, h, ctx) => {
+            return new Promise(r => setTimeout(() => {
+                let res = { text: "", map: false, visual: null, newContext: ctx || {} };
+                const low = msg.toLowerCase();
+
+                if (!ctx?.service) {
+                    if (low.includes("snow")) { 
+                        res.text = "I found your address. 2-car driveway detected. When do you need snow cleared?";
+                        res.visual = "driveway"; res.newContext = { service: "Snow", step: "time" };
+                    } else if (low.includes("clean")) {
+                        res.text = "I see your home info. Standard clean scope (3bd/2ba). When do you need this?";
+                        res.visual = "room"; res.newContext = { service: "Clean", step: "time" };
+                    } else {
+                        res.text = "I can help with Snow, Cleaning, or Handyman. What do you need?";
+                    }
+                } else if (ctx.step === "time") {
+                    res.text = "Got it. Estimated price is standard for your area. Ready to book?";
+                    res.newContext.step = "confirm";
+                } else if (ctx.step === "confirm") {
+                    res.text = "Dispatching a verified helper. Please authorize hold:";
+                    res.link = "#stripe"; res.map = true;
+                } else {
+                    res.text = "Could you clarify?";
+                }
+                r(res);
+            }, 1000));
+        };
+
+        // --- APP COMPONENT ---
+        const App = () => {
+            const [userMode, setUserMode] = useState('customer'); 
+            const [messages, setMessages] = useState([]);
+            const [input, setInput] = useState("");
+            const [isLoading, setIsLoading] = useState(false);
+            const [jobContext, setJobContext] = useState(null); 
+            const messagesEndRef = useRef(null);
+
+            useEffect(() => {
+                setJobContext(null);
+                setMessages([{ 
+                    role: 'ai', 
+                    text: userMode === 'customer' 
+                        ? "Hi neighbor! 👋 I'm your Concierge. I can book snow removal, cleaning, handy-work, or tutoring. What can I get done for you?" 
+                        : "Hi there! Ready to help your neighbors? Type 'Start' to create your Helper Profile." 
+                }]);
+            }, [userMode]);
+
+            useEffect(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), [messages]);
+
+            const handleSend = async (textOverride = null) => {
+                const text = textOverride || input;
+                if (!text.trim()) return;
+
+                const newMsgs = [...messages, { role: 'user', text: text }];
+                setMessages(newMsgs);
+                setInput("");
+                setIsLoading(true);
+
+                try {
+                    // CALL THE UNIFIED BACKEND HANDLER
+                    const response = await callBackend(text, userMode, jobContext);
+                    
+                    setMessages(prev => [...prev, { 
+                        role: 'ai', 
+                        text: response.text, 
+                        link: response.link,
+                        showMap: response.map,
+                        visual: response.visual
+                    }]);
+                    
+                    if (response.newContext) setJobContext(response.newContext);
+
+                } catch (error) {
+                    setMessages(prev => [...prev, { role: 'ai', text: "Connection glitch. Try again?" }]);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
+                    {/* HEADER */}
+                    <div className="w-full bg-white border-b-2 border-nano-black p-4 sticky top-0 z-10">
+                        <div className="max-w-3xl mx-auto flex justify-between items-center">
+                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setUserMode('customer')}>
+                                <div className="w-8 h-8 bg-[#FFE135] rounded-lg border-2 border-black flex items-center justify-center font-bold text-xl">N</div>
+                                <span className="brand-font text-xl tracking-tight">NeighborTask</span>
+                            </div>
+                            <button onClick={() => setUserMode(userMode === 'customer' ? 'helper' : 'customer')}
+                                className={`px-3 py-1 text-sm font-bold border-2 border-black rounded-full transition-all ${userMode === 'customer' ? 'bg-black text-white hover:bg-gray-800' : 'bg-[#FFE135] text-black hover:bg-[#FFD700]'}`}>
+                                {userMode === 'customer' ? 'Switch to Helper Mode' : 'Back to Customer Mode'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* MAIN CHAT */}
+                    <main className="flex-1 w-full max-w-3xl mx-auto p-4 flex flex-col">
+                        {/* Service Pills (Customer Only) */}
+                        {userMode === 'customer' && messages.length < 3 && (
+                            <div className="mb-6">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Popular Services</p>
+                                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                                    {[{i:<i data-lucide="snowflake"></i>,l:"Snow Removal",t:"I need snow removal"}, {i:<i data-lucide="sparkles"></i>,l:"Cleaning",t:"I need house cleaning"}, {i:<i data-lucide="hammer"></i>,l:"Handyman",t:"I need a handyman"}, {i:<i data-lucide="flower"></i>,l:"Lawn",t:"I need lawn mowing"}].map((s,i) => (
+                                        <button key={i} onClick={() => handleSend(s.t)} className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-nano-black rounded-full hover:bg-[#FFE135] transition-colors whitespace-nowrap">
+                                            {s.i}<span className="font-medium">{s.l}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Chat Area */}
+                        <div className="flex-1 overflow-y-auto mb-4 pr-2">
+                            {messages.map((msg, idx) => (
+                                <div key={idx} className={`flex w-full mb-4 ${msg.role === 'ai' ? 'justify-start' : 'justify-end'}`}>
+                                    <div className={`max-w-[85%] p-4 ${msg.role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user'}`}>
+                                        <p className="text-sm md:text-base leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                                        {msg.showMap && <CommunityMap label="Verified Neighborhood Zone" />}
+                                        {msg.visual === 'driveway' && <DrivewayVisual />}
+                                        {msg.visual === 'lawn' && <LawnVisual />}
+                                        {msg.visual === 'room' && <RoomVisual />}
+                                        {msg.link && <a href={msg.link} target="_blank" className="mt-3 block w-full text-center py-2 bg-black text-white font-bold rounded-lg hover:opacity-90">Open Secure Link &rarr;</a>}
+                                    </div>
+                                </div>
+                            ))}
+                            {isLoading && <div className="flex justify-start w-full mb-4"><div className="chat-bubble-ai p-4 flex gap-1"><div className="w-2 h-2 bg-gray-400 rounded-full loader-dot"></div><div className="w-2 h-2 bg-gray-400 rounded-full loader-dot"></div><div className="w-2 h-2 bg-gray-400 rounded-full loader-dot"></div></div></div>}
+                            <div ref={messagesEndRef} />
+                        </div>
+
+                        {/* Input */}
+                        <div className="card-nano p-2 flex items-center gap-2 sticky bottom-4">
+                            <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                                placeholder={userMode === 'customer' ? "Type your address and task..." : "Type your answer..."}
+                                className="flex-1 p-3 outline-none text-lg bg-transparent" />
+                            <button onClick={() => handleSend()} className="btn-banana w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            </button>
+                        </div>
+                        <p className="text-center text-xs text-gray-400 mt-2"><span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>Active in Naperville, IL • Verified Neighbors</p>
+                    </main>
+                </div>
+            );
+        };
+
+        lucide.createIcons();
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
