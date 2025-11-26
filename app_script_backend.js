@@ -93,11 +93,51 @@ function normalizeChatData(input) {
   return data;
 }
 
+// =======================
+// CONFIG
+// =======================
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+const GEMINI_MODELS = [
+  "gemini-1.5-flash",
+  "gemini-1.5-pro"
+];
+// Make sure GEMINI_API_KEY and SYSTEM_PROMPT are defined somewhere above.
+
+/**
+ * ✅ Helper: Normalize incoming data
+ * Accepts:
+ *  - string → treated as message
+ *  - object → tries message / text / prompt, plus optional context / mode
+ */
+function normalizeChatData(input) {
+  if (!input) {
+    return {
+      message: "",
+      context: {},
+      mode: "default"
+    };
+  }
+
+  if (typeof input === "string") {
+    return {
+      message: input,
+      context: {},
+      mode: "default"
+    };
+  }
+
+  var data = Object.assign({}, input);
+  data.message = input.message || input.text || input.prompt || "";
+  data.context = input.context || {};
+  data.mode    = input.mode || "default";
+
+  return data;
+}
+
 /**
  * CORE LOGIC
  */
 function handleChatLogic(rawData) {
-  // Always normalize before using
   var data = normalizeChatData(rawData);
   return callGeminiWithFallback(data);
 }
@@ -106,26 +146,20 @@ function handleChatLogic(rawData) {
  * SMART GEMINI CALLER (Flash -> Pro Fallback)
  */
 function callGeminiWithFallback(rawData) {
-  // Make sure data is normalized (in case someone calls this directly)
   var data = normalizeChatData(rawData);
 
-  // List of models to try in order
-  const models = ["gemini-pro"];
-  
   let lastError = "";
 
-  for (const model of models) {
+  for (const model of GEMINI_MODELS) {
     try {
       const result = callGeminiAPI(data, model);
-      if (result) return result; // Success!
+      if (result) return result; // Success
     } catch (e) {
       Logger.log("Model " + model + " failed: " + e);
       lastError = e.toString();
-      // Continue to next model...
     }
   }
 
-  // If all fail
   return {
     text: "I'm having trouble connecting to the AI models. Error: " + lastError,
     newContext: data.context || {}
@@ -136,13 +170,17 @@ function callGeminiWithFallback(rawData) {
  * LOW-LEVEL GEMINI CALLER
  */
 function callGeminiAPI(rawData, modelName) {
-  var data = normalizeChatData(rawData); // extra safety
+  var data = normalizeChatData(rawData);
 
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/"
-    + modelName
-    + ":generateContent?key="
-    + GEMINI_API_KEY;
-  
+  const url =
+    GEMINI_API_BASE +
+    "/models/" +
+    modelName +
+    ":generateContent?key=" +
+    GEMINI_API_KEY;
+
+  Logger.log("Calling Gemini URL: " + url);
+
   const contextStr = JSON.stringify(data.context || {});
   const userMsg    = data.message || "";
   const mode       = data.mode || "default";
@@ -150,7 +188,10 @@ function callGeminiAPI(rawData, modelName) {
   const payload = {
     contents: [{
       parts: [{
-        text: "MODE: " + mode + ". CONTEXT: " + contextStr + ". USER: \"" + userMsg + "\".\nBased on system instructions, return JSON."
+        text:
+          "MODE: " + mode +
+          ". CONTEXT: " + contextStr +
+          ". USER: \"" + userMsg + "\".\nBased on system instructions, return JSON."
       }]
     }],
     systemInstruction: {
@@ -172,13 +213,15 @@ function callGeminiAPI(rawData, modelName) {
   const responseCode = response.getResponseCode();
   const responseText = response.getContentText();
 
+  Logger.log("Gemini response code: " + responseCode);
+  Logger.log("Gemini raw response: " + responseText);
+
   if (responseCode !== 200) {
     throw new Error("API " + responseCode + ": " + responseText);
   }
 
   const json = JSON.parse(responseText);
 
-  // Defensive checks around candidates
   if (!json.candidates ||
       !json.candidates[0] ||
       !json.candidates[0].content ||
@@ -190,11 +233,14 @@ function callGeminiAPI(rawData, modelName) {
 
   let aiRawText = json.candidates[0].content.parts[0].text;
 
-  // Clean Markdown wrapper if present – extract the first {...} block
   const jsonMatch = aiRawText.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
     aiRawText = jsonMatch[0];
   }
+
+  return JSON.parse(aiRawText);
+}
+
 
   // This is expected to be JSON per SYSTEM_PROMPT + response_mime_type
   return JSON.parse(aiRawText);
