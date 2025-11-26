@@ -12,7 +12,7 @@ const SS_ID = "1yyD9xQD4_CAYiqW954nl8yinqRwQf82pTcA56vwefjo";
 
 
  
-const GEMINI_API_KEY = "AIzaSyBmf5wxqx5jcf4OLL70aBlj0LzmgWGdBHQ"; // <--- PASTE YOUR REAL GEMINI KEY HERE
+const GEMINI_API_KEY = "AIzaSyA3z2_ZjWT8szSWJbCYbJ2Wf4JqoJ6tv6M"; // <--- PASTE YOUR REAL GEMINI KEY HERE
 
 
 
