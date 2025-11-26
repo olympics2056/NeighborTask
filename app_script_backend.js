@@ -2,7 +2,6 @@
 // NEIGHBORTASK PRODUCTION BACKEND (REAL GEMINI AI)
 // ========================================================
 
-// ⚠️ SECURITY WARNING: Never share these keys publicly. I have preserved them here for your use.
 const STRIPE_API_KEY = "sk_test_51SXaIyJdqxYyOXHAXgIr5vUW9P4Kx539eFnoKtJnoQM30XDtWu4qR8ArwyxkVoOlBzjrZZBO3iIFYjLSbIO1xSMO00aOLotVTE"; 
 // const CHECKR_API_KEY = "test_...";    // Checkr skipped for now
 
@@ -57,7 +56,7 @@ function doPost(e) {
 
   } catch (error) {
     return createJSONOutput({ 
-      text: "I'm having a little brain freeze. Can you try again?",
+      text: "Backend Error: " + error.toString(),
       error: error.toString() 
     });
   }
@@ -121,18 +120,22 @@ function callGeminiAI(data) {
     
     const json = JSON.parse(response.getContentText());
     
-    // --- THE FIX IS HERE ---
+    // --- ROBUST JSON EXTRACTION FIX ---
     let aiRawText = json.candidates[0].content.parts[0].text;
     
-    // Clean up Markdown characters if Gemini adds them (```json ... ```)
-    aiRawText = aiRawText.replace(/```json/g, "").replace(/```/g, "").trim();
+    // 1. Try to find the JSON object using Regex (ignores conversational text outside brackets)
+    const jsonMatch = aiRawText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      aiRawText = jsonMatch[0];
+    }
     
     return JSON.parse(aiRawText); 
 
   } catch (e) {
     Logger.log("Gemini Error: " + e.toString());
+    // Return the ACTUAL error to the chat window for debugging
     return {
-      text: "I'm currently offline for maintenance (Backend Error). Please try again!",
+      text: "Debug Error: " + e.toString(), 
       newContext: {}
     };
   }
