@@ -5,7 +5,7 @@
 // ⚠️ SECURITY NOTICE: Replace these with your NEW keys. 
 // The previous keys you shared are now compromised.
 const STRIPE_API_KEY = "sk_test_51SXaIyJdqxYyOXHAXgIr5vUW9P4Kx539eFnoKtJnoQM30XDtWu4qR8ArwyxkVoOlBzjrZZBO3iIFYjLSbIO1xSMO00aOLotVTE"; 
-const GEMINI_API_KEY = "AIzaSyBC3aVBOJT0LLGnjFBaHNAxQM7vAjecmRk"; 
+const GEMINI_API_KEY = "AIzaSyC7jo161v5SEp_OaowgLTJjtBe2SQDFfCs"; 
 
 // REPLACE WITH YOUR GOOGLE SHEET ID
 const SS_ID = "1yyD9xQD4_CAYiqW954nl8yinqRwQf82pTcA56vwefjo"; 
