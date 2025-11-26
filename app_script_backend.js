@@ -4,11 +4,11 @@
 
 // ⚠️ SECURITY NOTICE: Replace these with your NEW keys. 
 // The previous keys you shared are now compromised.
-const STRIPE_API_KEY = "sk_test_..."; 
-const GEMINI_API_KEY = "AIza..."; 
+const STRIPE_API_KEY = "sk_test_51SXaIyJdqxYyOXHAXgIr5vUW9P4Kx539eFnoKtJnoQM30XDtWu4qR8ArwyxkVoOlBzjrZZBO3iIFYjLSbIO1xSMO00aOLotVTE"; 
+const GEMINI_API_KEY = "AIzaSyBC3aVBOJT0LLGnjFBaHNAxQM7vAjecmRk"; 
 
 // REPLACE WITH YOUR GOOGLE SHEET ID
-const SS_ID = "YOUR_SPREADSHEET_ID_HERE"; 
+const SS_ID = "1yyD9xQD4_CAYiqW954nl8yinqRwQf82pTcA56vwefjo"; 
 
 const SYSTEM_PROMPT = `
 You are NeighborTask Concierge. 
