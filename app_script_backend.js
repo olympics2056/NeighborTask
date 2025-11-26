@@ -2,22 +2,16 @@
 // NEIGHBORTASK PRODUCTION BACKEND (REAL GEMINI AI)
 // ========================================================
 
-const STRIPE_API_KEY = "sk_test_51SXaIyJdqxYyOXHAXgIr5vUW9P4Kx539eFnoKtJnoQM30XDtWu4qR8ArwyxkVoOlBzjrZZBO3iIFYjLSbIO1xSMO00aOLotVTE"; // Add your Stripe Secret Key
+// ⚠️ SECURITY WARNING: Never share these keys publicly. I have preserved them here for your use.
+const STRIPE_API_KEY = "sk_test_51SXaIyJdqxYyOXHAXgIr5vUW9P4Kx539eFnoKtJnoQM30XDtWu4qR8ArwyxkVoOlBzjrZZBO3iIFYjLSbIO1xSMO00aOLotVTE"; 
 // const CHECKR_API_KEY = "test_...";    // Checkr skipped for now
 
 // Database IDs
-// REPLACE THE ID BELOW WITH YOUR REAL GOOGLE SHEET ID
-// Example: If URL is docs.google.com/spreadsheets/d/1aBcD.../edit, the ID is "1aBcD..."
 const SS_ID = "1yyD9xQD4_CAYiqW954nl8yinqRwQf82pTcA56vwefjo"; 
 
-
- 
-const GEMINI_API_KEY = "AIzaSyBC3aVBOJT0LLGnjFBaHNAxQM7vAjecmRk"; // <--- PASTE YOUR REAL GEMINI KEY HERE
-
-
+const GEMINI_API_KEY = "AIzaSyBC3aVBOJT0LLGnjFBaHNAxQM7vAjecmRk"; 
 
 // --- SYSTEM INSTRUCTIONS (The Brain) ---
-// This tells Gemini exactly how to behave based on your v3.1 Design Doc
 const SYSTEM_PROMPT = `
 You are NeighborTask Concierge, a friendly neighborhood helper AI.
 Your goal is to book services (Snow, Lawn, Cleaning, Handyman, Tutoring) efficiently.
@@ -35,9 +29,9 @@ You act as a JSON API. You must **ALWAYS** return raw JSON. No markdown.
 Format:
 {
   "text": "Your friendly reply to the user...",
-  "map": true/false, (Show map if location confirmed)
-  "visual": "driveway" | "lawn" | "room" | null, (Show schematic if relevant)
-  "link": "stripe_url" | "checkr_url" | null, (Only if confirming booking)
+  "map": true/false, 
+  "visual": "driveway" | "lawn" | "room" | null, 
+  "link": "stripe_url" | "checkr_url" | null, 
   "newContext": { "service": "...", "step": "...", "risk": "..." }
 }
 `;
@@ -55,7 +49,6 @@ function doPost(e) {
     }
 
     if (requestData.action === 'chat') {
-      // CALL REAL GEMINI AI
       const response = callGeminiAI(requestData);
       return createJSONOutput(response);
     }
@@ -86,10 +79,9 @@ function createJSONOutput(data) {
  */
 function callGeminiAI(data) {
   const userMsg = data.message;
-  const mode = data.mode; // 'customer' or 'helper'
+  const mode = data.mode; 
   const context = JSON.stringify(data.context || {});
 
-  // Prepare the conversation history for Gemini
   const payload = {
     "contents": [
       {
@@ -101,8 +93,8 @@ function callGeminiAI(data) {
             USER SAYS: "${userMsg}"
             
             Based on the system instructions, provide the next JSON response.
-            If the user confirms a booking, generate a mock payment link.
-            If the user is a Helper and needs verification, generate a mock checkr link.
+            If confirming booking, generate a mock payment link.
+            If helper needs verify, generate mock checkr link.
           ` 
         }]
       }
@@ -128,15 +120,19 @@ function callGeminiAI(data) {
     );
     
     const json = JSON.parse(response.getContentText());
-    const aiContent = json.candidates[0].content.parts[0].text;
     
-    return JSON.parse(aiContent); // Return the clean JSON from Gemini
+    // --- THE FIX IS HERE ---
+    let aiRawText = json.candidates[0].content.parts[0].text;
+    
+    // Clean up Markdown characters if Gemini adds them (```json ... ```)
+    aiRawText = aiRawText.replace(/```json/g, "").replace(/```/g, "").trim();
+    
+    return JSON.parse(aiRawText); 
 
   } catch (e) {
-    Logger.log(e);
-    // Fallback if API fails
+    Logger.log("Gemini Error: " + e.toString());
     return {
-      text: "I'm currently offline for maintenance. Please check back later! 🍌",
+      text: "I'm currently offline for maintenance (Backend Error). Please try again!",
       newContext: {}
     };
   }
