@@ -98,6 +98,9 @@ function callGeminiAI(data) {
         }]
       }
     ],
+    // Note: 'system_instruction' field name depends on API version. 
+    // For gemini-pro v1beta, it is often passed as a user message or systemInstruction.
+    // We stick to systemInstruction as it is standard for newer models.
     "systemInstruction": {
       "parts": [{ "text": SYSTEM_PROMPT }]
     },
@@ -109,21 +112,34 @@ function callGeminiAI(data) {
   const options = {
     "method": "post",
     "contentType": "application/json",
-    "payload": JSON.stringify(payload)
+    "payload": JSON.stringify(payload),
+    "muteHttpExceptions": true // Important to see 404 errors in logs
   };
 
   try {
+    // CHANGED MODEL TO 'gemini-1.5-flash-latest' OR 'gemini-pro' for stability
+    // Using 'gemini-1.5-flash-latest' as it is often the intended target for flash calls
     const response = UrlFetchApp.fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
       options
     );
     
-    const json = JSON.parse(response.getContentText());
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    if (responseCode !== 200) {
+      Logger.log("API Error: " + responseText);
+      return {
+        text: `API Error (${responseCode}): ${responseText}`,
+        newContext: {}
+      };
+    }
+    
+    const json = JSON.parse(responseText);
     
     // --- ROBUST JSON EXTRACTION FIX ---
     let aiRawText = json.candidates[0].content.parts[0].text;
     
-    // 1. Try to find the JSON object using Regex (ignores conversational text outside brackets)
     const jsonMatch = aiRawText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       aiRawText = jsonMatch[0];
@@ -133,7 +149,6 @@ function callGeminiAI(data) {
 
   } catch (e) {
     Logger.log("Gemini Error: " + e.toString());
-    // Return the ACTUAL error to the chat window for debugging
     return {
       text: "Debug Error: " + e.toString(), 
       newContext: {}
