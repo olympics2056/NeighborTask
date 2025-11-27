@@ -169,42 +169,38 @@ function buildAssistantMessage(replyText, messages) {
 }
 
 /**
- * Call OpenAI chat completions API with GPT-5.1
+ * Call OpenAI Responses API with GPT-5.1
  */
 function callOpenAIChat(messages, mode) {
   var apiKey = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
-  if (!apiKey) {
-    throw new Error("Missing OPENAI_API_KEY in Script properties");
-  }
+  if (!apiKey) throw new Error("Missing OPENAI_API_KEY");
 
   var systemPrompt = getSystemPromptForMode(mode);
 
-  var openAIMessages = [];
-  openAIMessages.push({ role: "system", content: systemPrompt });
+  // Build "messages" array for conversation object
+  var conversationMessages = [];
+  conversationMessages.push({ role: "system", content: systemPrompt });
 
-  // Copy history
-  for (var i = 0; i < messages.length; i++) {
-    var m = messages[i];
-    if (!m || !m.role) continue;
+  messages.forEach(function (m) {
+    if (!m || !m.role) return;
+    var content = m.content || m.text || "";
+    if (!content) return;
+    conversationMessages.push({ role: m.role, content: content });
+  });
 
-    var content = "";
-    if (typeof m.content === "string") content = m.content;
-    else if (typeof m.text === "string") content = m.text;
-    else continue;
-
-    openAIMessages.push({
-      role: m.role,
-      content: content
-    });
-  }
-
-  var url = "https://api.openai.com/v1/chat/completions";
+  var url = "https://api.openai.com/v1/responses";
 
   var body = {
-    model: MODEL_NAME,                // e.g., "gpt-5.1" or "gpt-5.1-mini"
-    messages: openAIMessages,
+    model: MODEL_NAME,             // e.g., "gpt-5.1" or "gpt-5.1-mini"
+    max_output_tokens: 500,
     temperature: 0.4,
-    max_output_tokens: 800            // <<< FIXED FOR GPT-5.1
+
+    // NEW Responses API format
+    input: {
+      conversation: {
+        messages: conversationMessages
+      }
+    }
   };
 
   var options = {
@@ -226,16 +222,14 @@ function callOpenAIChat(messages, mode) {
   }
 
   var data = JSON.parse(text);
-  var reply =
-    data &&
-    data.choices &&
-    data.choices[0] &&
-    data.choices[0].message &&
-    data.choices[0].message.content;
 
-  if (!reply) {
-    throw new Error("Empty reply from OpenAI");
-  }
+  // Extract output text
+  var reply =
+    data?.output_text ??
+    data?.output?.[0]?.content ??
+    null;
+
+  if (!reply) throw new Error("Empty reply from OpenAI");
 
   return reply.trim();
 }
