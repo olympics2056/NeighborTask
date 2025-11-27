@@ -201,10 +201,10 @@ function callOpenAIChat(messages, mode) {
   var url = "https://api.openai.com/v1/chat/completions";
 
   var body = {
-    model: MODEL_NAME,
+    model: MODEL_NAME,                // e.g., "gpt-5.1" or "gpt-5.1-mini"
     messages: openAIMessages,
     temperature: 0.4,
-    max_tokens: 800
+    max_output_tokens: 800            // <<< FIXED FOR GPT-5.1
   };
 
   var options = {
