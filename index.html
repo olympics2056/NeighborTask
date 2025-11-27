@@ -167,7 +167,7 @@
         };
 
 // --- REAL BACKEND HANDLER ---
-// Now sends full messages[] + context to Apps Script backend
+// Sends full messages[] + context to Apps Script backend
 // and is tolerant of different response shapes.
 const callBackend = async (messagesForAPI, userMode, currentContext) => {
     // If BACKEND_URL missing: fall back to mock logic
@@ -183,8 +183,8 @@ const callBackend = async (messagesForAPI, userMode, currentContext) => {
     try {
         const response = await fetch(BACKEND_URL, {
             method: "POST",
-            mode: "cors",
-            headers: { "Content-Type": "application/json" },
+            // IMPORTANT: text/plain avoids CORS preflight with Apps Script
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify({
                 action: "chat",
                 mode: userMode,
@@ -218,7 +218,7 @@ const callBackend = async (messagesForAPI, userMode, currentContext) => {
             };
         }
 
-        // Try multiple common shapes: {reply}, {text}, plain string
+        // Try multiple shapes: {reply}, {text}, string
         let replyText =
             (data && typeof data.reply === "string" && data.reply) ||
             (data && typeof data.text === "string" && data.text) ||
@@ -235,7 +235,7 @@ const callBackend = async (messagesForAPI, userMode, currentContext) => {
     } catch (error) {
         console.error("Backend Error:", error);
         return {
-            text: "⚠️ Connection error. I'm having trouble reaching the neighborhood server. Please try again.",
+            text: "⚠️ Connection error: " + (error?.message || String(error)),
             newContext: currentContext
         };
     }
