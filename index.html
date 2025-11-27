@@ -128,44 +128,100 @@
             );
         };
 
-        // --- REAL BACKEND HANDLER ---
-        // NOTE: now accepts `history` so the backend can see the full conversation.
-        const callBackend = async (message, userMode, currentContext, history) => {
-            // 1. Check if Backend is Configured
-            if (!BACKEND_URL || BACKEND_URL.length < 10) {
-                console.log("Using Mock AI (Backend URL missing)");
-                return userMode === 'customer' 
-                    ? mockCustomerAI(message, null, currentContext) 
-                    : mockHelperAI(message, null, currentContext);
+        // --------------------------------------------------------
+        // Simple context builder: infer service_type / urgency
+        // --------------------------------------------------------
+        const buildContextForRequest = (userMode, messages, prevContext) => {
+            let context = { ...(prevContext || {}) };
+
+            // look at last user message text
+            const lastUser = [...messages].slice().reverse().find(m => m.role === 'user');
+            const text = (lastUser?.text || "").toLowerCase();
+
+            // infer service type if not already set
+            if (!context.service_type) {
+                if (text.includes("snow")) context.service_type = "snow";
+                else if (text.includes("lawn")) context.service_type = "lawn";
+                else if (text.includes("clean")) context.service_type = "cleaning";
+                else if (text.includes("tutor")) context.service_type = "tutoring";
+                else if (text.includes("kid")) context.service_type = "kids_care";
+                else if (text.includes("dog")) context.service_type = "dog_walk";
+                else if (text.includes("light")) context.service_type = "lights";
             }
 
-            // 2. Real Fetch Call
+            // infer urgency
+            if (!context.urgency) {
+                context.urgency = "normal";
+            }
+            if (text.includes("now") || text.includes("today") || text.includes("asap") || text.includes("tonight")) {
+                context.urgency = "same_day";
+            }
+            if (text.includes("emergency") || text.includes("urgent")) {
+                context.urgency = "emergency";
+            }
+
+            // address: for now, let GPT ask if missing
+            context.address = context.address || null;
+
+            return context;
+        };
+
+        // --- REAL BACKEND HANDLER ---
+        // Now sends full messages[] + context to Apps Script backend
+        const callBackend = async (messagesForAPI, userMode, currentContext) => {
+            // If BACKEND_URL missing: fall back to mock logic
+            if (!BACKEND_URL || BACKEND_URL.length < 10) {
+                console.log("Using Mock AI (Backend URL missing)");
+                const lastUser = [...messagesForAPI].slice().reverse().find(m => m.role === 'user');
+                const messageText = lastUser ? lastUser.content : "";
+                return userMode === 'customer'
+                    ? mockCustomerAI(messageText, null, currentContext)
+                    : mockHelperAI(messageText, null, currentContext);
+            }
+
             try {
-                // Google Apps Script requires text/plain to avoid CORS preflight in some setups
                 const response = await fetch(BACKEND_URL, {
                     method: "POST",
-                    mode: "cors", 
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    mode: "cors",
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         action: "chat",
                         mode: userMode,
-                        message: message,
-                        context: currentContext,
-                        history: history || []   // 👈 pass full chat history
+                        messages: messagesForAPI,
+                        context: currentContext || {},
+                        meta: {
+                            client_ts: Date.now(),
+                            ui_version: "v0.2"
+                        }
                     })
                 });
-                
-                const data = await response.json();
-                return data; // Expected format: { text, link, map, visual, newContext }
 
+                const data = await response.json();
+                if (!data.success) {
+                    console.error("Backend returned error:", data.error);
+                    return {
+                        text: data.error || "⚠️ Server error. Please try again.",
+                        newContext: currentContext
+                    };
+                }
+
+                // Normalize to the shape the UI expects
+                return {
+                    text: data.reply,
+                    newContext: currentContext,
+                    map: false,
+                    visual: null
+                };
             } catch (error) {
                 console.error("Backend Error:", error);
-                return { text: "⚠️ Connection error. I'm having trouble reaching the neighborhood server. Please try again." };
+                return {
+                    text: "⚠️ Connection error. I'm having trouble reaching the neighborhood server. Please try again.",
+                    newContext: currentContext
+                };
             }
         };
 
         // --- MOCK FALLBACKS (For Testing) ---
-        // Kept compact for fallback logic
         const mockHelperAI = async (msg, h, ctx) => {
             return new Promise(r => setTimeout(() => {
                 let res = { text: "", map: false, newContext: ctx || {} };
@@ -249,17 +305,24 @@
                 const text = textOverride || input;
                 if (!text.trim()) return;
 
-                // history = all messages BEFORE this new user message
-                const outgoingHistory = messages;
-
-                const newMsgs = [...messages, { role: 'user', text: text }];
+                // UI messages (for rendering)
+                const newMsgs = [...messages, { role: 'user', text }];
                 setMessages(newMsgs);
                 setInput("");
                 setIsLoading(true);
 
+                // Build context from conversation so far
+                const contextForRequest = buildContextForRequest(userMode, newMsgs, jobContext);
+                setJobContext(contextForRequest);
+
+                // Build messages for backend (role + content)
+                const messagesForAPI = newMsgs.map(m => ({
+                    role: m.role === 'ai' ? 'assistant' : 'user',
+                    content: m.text
+                }));
+
                 try {
-                    // CALL THE UNIFIED BACKEND HANDLER, passing history
-                    const response = await callBackend(text, userMode, jobContext, outgoingHistory);
+                    const response = await callBackend(messagesForAPI, userMode, contextForRequest);
                     
                     setMessages(prev => [...prev, { 
                         role: 'ai', 
@@ -305,8 +368,8 @@
                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Popular Services</p>
                                 <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                                     {[
-                                        {i:<i data-lucide="snowflake"></i>,l:"Snow Removal",t:"I need snow removal"},
-                                        {i:<i data-lucide="sparkles"></i>,l:"Cleaning",t:"I need house cleaning"},
+                                        {i:<i data-lucide="snowflake"></i>,l:"Snow Removal",t:"I need snow removal at my address"},
+                                        {i:<i data-lucide="sparkles"></i>,l:"Cleaning",t:"I need house cleaning at my address"},
                                         {i:<i data-lucide="hammer"></i>,l:"Handyman",t:"I need a handyman"},
                                         {i:<i data-lucide="flower"></i>,l:"Lawn",t:"I need lawn mowing"}
                                     ].map((s,i) => (
