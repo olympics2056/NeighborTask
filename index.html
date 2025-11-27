@@ -166,60 +166,81 @@
             return context;
         };
 
-        // --- REAL BACKEND HANDLER ---
-        // Now sends full messages[] + context to Apps Script backend
-        const callBackend = async (messagesForAPI, userMode, currentContext) => {
-            // If BACKEND_URL missing: fall back to mock logic
-            if (!BACKEND_URL || BACKEND_URL.length < 10) {
-                console.log("Using Mock AI (Backend URL missing)");
-                const lastUser = [...messagesForAPI].slice().reverse().find(m => m.role === 'user');
-                const messageText = lastUser ? lastUser.content : "";
-                return userMode === 'customer'
-                    ? mockCustomerAI(messageText, null, currentContext)
-                    : mockHelperAI(messageText, null, currentContext);
-            }
+// --- REAL BACKEND HANDLER ---
+// Now sends full messages[] + context to Apps Script backend
+// and is tolerant of different response shapes.
+const callBackend = async (messagesForAPI, userMode, currentContext) => {
+    // If BACKEND_URL missing: fall back to mock logic
+    if (!BACKEND_URL || BACKEND_URL.length < 10) {
+        console.log("Using Mock AI (Backend URL missing)");
+        const lastUser = [...messagesForAPI].slice().reverse().find(m => m.role === 'user');
+        const messageText = lastUser ? lastUser.content : "";
+        return userMode === 'customer'
+            ? mockCustomerAI(messageText, null, currentContext)
+            : mockHelperAI(messageText, null, currentContext);
+    }
 
-            try {
-                const response = await fetch(BACKEND_URL, {
-                    method: "POST",
-                    mode: "cors",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        action: "chat",
-                        mode: userMode,
-                        messages: messagesForAPI,
-                        context: currentContext || {},
-                        meta: {
-                            client_ts: Date.now(),
-                            ui_version: "v0.2"
-                        }
-                    })
-                });
-
-                const data = await response.json();
-                if (!data.success) {
-                    console.error("Backend returned error:", data.error);
-                    return {
-                        text: data.error || "⚠️ Server error. Please try again.",
-                        newContext: currentContext
-                    };
+    try {
+        const response = await fetch(BACKEND_URL, {
+            method: "POST",
+            mode: "cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "chat",
+                mode: userMode,
+                messages: messagesForAPI,
+                context: currentContext || {},
+                meta: {
+                    client_ts: Date.now(),
+                    ui_version: "v0.2"
                 }
+            })
+        });
 
-                // Normalize to the shape the UI expects
-                return {
-                    text: data.reply,
-                    newContext: currentContext,
-                    map: false,
-                    visual: null
-                };
-            } catch (error) {
-                console.error("Backend Error:", error);
-                return {
-                    text: "⚠️ Connection error. I'm having trouble reaching the neighborhood server. Please try again.",
-                    newContext: currentContext
-                };
-            }
+        const raw = await response.text();
+        let data = null;
+        try {
+            data = JSON.parse(raw);
+        } catch (e) {
+            console.warn("Backend returned non-JSON:", raw);
+            return {
+                text: raw || "⚠️ Server returned an unreadable response.",
+                newContext: currentContext
+            };
+        }
+
+        console.log("Backend data:", data);
+
+        if (data && data.success === false) {
+            return {
+                text: data.error || "⚠️ Server error. Please try again.",
+                newContext: currentContext
+            };
+        }
+
+        // Try multiple common shapes: {reply}, {text}, plain string
+        let replyText =
+            (data && typeof data.reply === "string" && data.reply) ||
+            (data && typeof data.text === "string" && data.text) ||
+            (typeof data === "string" && data) ||
+            "⚠️ No reply text returned from server.";
+
+        return {
+            text: replyText,
+            newContext: currentContext,
+            map: false,
+            visual: null,
+            link: null
         };
+    } catch (error) {
+        console.error("Backend Error:", error);
+        return {
+            text: "⚠️ Connection error. I'm having trouble reaching the neighborhood server. Please try again.",
+            newContext: currentContext
+        };
+    }
+};
+
 
         // --- MOCK FALLBACKS (For Testing) ---
         const mockHelperAI = async (msg, h, ctx) => {
