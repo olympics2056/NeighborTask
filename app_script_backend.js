@@ -168,7 +168,6 @@ function buildAssistantMessage(replyText, messages) {
   return msg;
 }
 
-
 /**
  * Call OpenAI Responses API with GPT-5.1
  */
