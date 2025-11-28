@@ -3,54 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NeighborTask Concierge v3.2</title>
+<title>NeighborTask v5.0</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<!-- Stripe.js -->
 <script src="https://js.stripe.com/v3/"></script>
 <style>
-/* Use system fonts - no external dependencies */
 :root {
---font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
---font-display: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, sans-serif;
---banana-yellow: #FFE135;
---nano-black: #1A1A1A;
---paper-white: #FAFAFA;
+--font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+--banana-yellow: #FFE135; --nano-black: #1A1A1A; --paper-white: #FAFAFA;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: var(--font-sans); background: var(--paper-white); color: var(--nano-black); }
-.brand-font { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; }
 .btn-banana { background: var(--banana-yellow); color: var(--nano-black); border: 2px solid var(--nano-black); 
-box-shadow: 4px 4px 0 var(--nano-black); cursor: pointer; transition: all 0.1s; font-weight: 600; }
+box-shadow: 4px 4px 0 var(--nano-black); cursor: pointer; transition: all 0.1s; font-weight: 600; padding: 12px 24px; border-radius: 8px; }
 .btn-banana:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--nano-black); }
-.btn-black { background: black; color: white; border: 2px solid black; padding: 12px 24px; 
-border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
-.btn-black:hover { background: #333; }
-.card-nano { background: white; border: 2px solid var(--nano-black); border-radius: 16px; 
-box-shadow: 6px 6px 0 rgba(0,0,0,0.1); }
-.chat-bubble-ai { background: white; border: 2px solid var(--nano-black); border-radius: 16px 16px 16px 0; 
-box-shadow: 2px 2px 0 rgba(0,0,0,0.05); }
-.chat-bubble-user { background: var(--banana-yellow); border: 2px solid var(--nano-black); 
-border-radius: 16px 16px 0 16px; box-shadow: 2px 2px 0 rgba(0,0,0,0.1); }
-.loader-dot { width: 8px; height: 8px; background: #9CA3AF; border-radius: 50%; 
-animation: bounce 1.4s infinite ease-in-out both; }
+.card-nano { background: white; border: 2px solid var(--nano-black); border-radius: 16px; box-shadow: 6px 6px 0 rgba(0,0,0,0.1); }
+.chat-bubble-ai { background: white; border: 2px solid var(--nano-black); border-radius: 16px 16px 16px 0; padding: 16px; margin-bottom: 16px; max-width: 85%; }
+.chat-bubble-user { background: var(--banana-yellow); border: 2px solid var(--nano-black); border-radius: 16px 16px 0 16px; padding: 16px; margin-bottom: 16px; max-width: 85%; }
+.loader-dot { width: 8px; height: 8px; background: #9CA3AF; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; display: inline-block; margin: 0 2px; }
 .loader-dot:nth-child(1) { animation-delay: -0.32s; }
 .loader-dot:nth-child(2) { animation-delay: -0.16s; }
 @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-.payment-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5);
-display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.payment-card { background: white; border-radius: 16px; border: 2px solid var(--nano-black);
-padding: 32px; max-width: 500px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
-.stripe-element { padding: 12px; border: 2px solid #E5E7EB; border-radius: 8px; margin: 12px 0; }
-.stripe-element:focus-within { border-color: var(--banana-yellow); }
-.badge { display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 11px; 
-font-weight: 600; margin: 4px 4px 0 0; }
-.badge-verified { background: #DBEAFE; color: #1E40AF; border: 1px solid #3B82F6; }
-.badge-bg-check { background: #DCFCE7; color: #166534; border: 1px solid #22C55E; }
+.schematic-card { margin: 16px 0; padding: 16px; border-radius: 12px; border: 2px solid; }
+.confirmation-box { margin: 12px 0; padding: 12px; background: #F0F9FF; border: 2px solid #3B82F6; border-radius: 8px; }
+.info-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; margin: 4px 4px 0 0; }
 </style>
 </head>
 <body>
@@ -58,354 +36,410 @@ font-weight: 600; margin: 4px 4px 0 0; }
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
 
-// ============ CONFIG ============
 const BACKEND_URL = "YOUR_BACKEND_URL_HERE";
-const STRIPE_PUBLIC_KEY = "pk_test_YOUR_PUBLISHABLE_KEY"; // Replace with your Stripe publishable key
 
-// Initialize Stripe
-const stripe = window.Stripe ? window.Stripe(STRIPE_PUBLIC_KEY) : null;
+// ============ ENHANCED SCHEMATICS ============
 
-// ============ PAYMENT COMPONENT ============
-const PaymentModal = ({ amount, jobData, onSuccess, onCancel }) => {
-const [processing, setProcessing] = useState(false);
-const [error, setError] = useState(null);
-const cardElementRef = useRef(null);
-
-useEffect(() => {
-if (!stripe) return;
-
-const elements = stripe.elements();
-const cardElement = elements.create('card', {
-style: {
-base: {
-fontSize: '16px',
-color: '#1A1A1A',
-'::placeholder': { color: '#9CA3AF' }
-}
-}
-});
-
-cardElement.mount('#card-element');
-cardElementRef.current = { stripe, cardElement };
-
-return () => cardElement.destroy();
-}, []);
-
-const handleSubmit = async (e) => {
-e.preventDefault();
-if (!cardElementRef.current) return;
-
-setProcessing(true);
-setError(null);
-
-try {
-// 1. Create payment intent on backend
-const response = await fetch(BACKEND_URL, {
-method: 'POST',
-headers: { 'Content-Type': 'text/plain' },
-body: JSON.stringify({
-action: 'create_payment_intent',
-amount: amount * 100, // Convert to cents
-customer_email: jobData.email,
-job_id: jobData.jobId || 'pending'
-})
-});
-
-const data = await response.json();
-if (!data.success) throw new Error(data.error);
-
-// 2. Confirm payment with Stripe
-const { error: stripeError, paymentIntent } = await cardElementRef.current.stripe.confirmCardPayment(
-data.payment_intent.client_secret,
-{
-payment_method: {
-card: cardElementRef.current.cardElement,
-billing_details: {
-email: jobData.email,
-name: jobData.name
-}
-}
-}
-);
-
-if (stripeError) throw new Error(stripeError.message);
-
-// 3. Confirm with backend
-await fetch(BACKEND_URL, {
-method: 'POST',
-headers: { 'Content-Type': 'text/plain' },
-body: JSON.stringify({
-action: 'confirm_payment',
-payment_intent_id: paymentIntent.id,
-job_id: jobData.jobId
-})
-});
-
-onSuccess(paymentIntent);
-} catch (err) {
-setError(err.message);
-setProcessing(false);
-}
-};
+const SnowRemovalSchematic = ({ data }) => {
+const { driveway_length, garage_spaces, include_walkway, walkway_length, include_deck, snow_depth, corner_lot } = data.scope;
 
 return (
-<div className="payment-modal">
-<div className="payment-card">
-<h2 style={{marginBottom: '16px', fontSize: '24px', fontWeight: 'bold'}}>
-🔒 Secure Payment
-</h2>
-<p style={{marginBottom: '24px', color: '#6B7280', fontSize: '14px'}}>
-Your card will be authorized for <strong>${amount.toFixed(2)}</strong> but not charged until the job is completed.
-</p>
-
-<form onSubmit={handleSubmit}>
-<div style={{marginBottom: '16px'}}>
-<label style={{display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px'}}>
-Card Information
-</label>
-<div id="card-element" className="stripe-element"></div>
+<div className="schematic-card" style={{borderColor: '#93C5FD', background: '#EFF6FF'}}>
+<div style={{fontSize: '14px', fontWeight: 'bold', color: '#1E40AF', marginBottom: '16px', textAlign: 'center'}}>
+❄️ SNOW REMOVAL SCOPE - CONFIRMED AREAS
 </div>
 
-{error && (
-<div style={{padding: '12px', background: '#FEE2E2', border: '1px solid #EF4444',
-borderRadius: '8px', marginBottom: '16px', color: '#991B1B', fontSize: '14px'}}>
-❌ {error}
+<svg viewBox="0 0 400 300" style={{width: '100%', height: 'auto', marginBottom: '16px'}}>
+{/* House */}
+<rect x="150" y="30" width="100" height="70" fill="#8B7355" stroke="black" strokeWidth="2"/>
+<polygon points="200,20 140,30 260,30" fill="#654321" stroke="black" strokeWidth="2"/>
+<text x="200" y="70" textAnchor="middle" fontSize="12" fontWeight="bold" fill="white">HOUSE</text>
+
+{/* Driveway */}
+<rect x="170" y="100" width="60" height={driveway_length * 1.5} fill="#D3D3D3" stroke="black" strokeWidth="3"/>
+<text x="200" y={100 + driveway_length * 0.75} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#1E40AF">
+{garage_spaces}-CAR DRIVEWAY
+</text>
+<text x="200" y={100 + driveway_length * 0.9} textAnchor="middle" fontSize="11" fill="#374151">
+{driveway_length} feet long
+</text>
+
+{/* Snow depth indicators */}
+{[...Array(8)].map((_, i) => (
+<circle key={`snow${i}`} cx={160 + i * 10} cy={110 + i * 12} r="4" fill="#B0E0E6" opacity="0.8"/>
+))}
+
+{/* Walkway */}
+{include_walkway && (
+<g>
+<rect x="120" y="100" width="40" height={walkway_length * 1.5} fill="#C0C0C0" stroke="black" strokeWidth="2" strokeDasharray="5,5"/>
+<text x="140" y={100 + walkway_length * 0.75} textAnchor="middle" fontSize="10" transform={`rotate(-90 140 ${100 + walkway_length * 0.75})`}>
+WALKWAY {walkway_length}ft
+</text>
+</g>
+)}
+
+{/* Deck */}
+{include_deck && (
+<g>
+<rect x="260" y="50" width="70" height="50" fill="#DEB887" stroke="black" strokeWidth="2"/>
+<text x="295" y="78" textAnchor="middle" fontSize="11" fontWeight="bold">DECK</text>
+{[...Array(5)].map((_, i) => (
+<line key={`deck${i}`} x1="265" y1={55 + i * 10} x2="325" y2={55 + i * 10} stroke="#8B7355" strokeWidth="1"/>
+))}
+</g>
+)}
+
+{/* Corner lot indicator */}
+{corner_lot && (
+<g>
+<line x1="120" y1="240" x2="350" y2="240" stroke="#374151" strokeWidth="2"/>
+<line x1="350" y1="100" x2="350" y2="240" stroke="#374151" strokeWidth="2"/>
+<text x="235" y="255" fontSize="10" fill="#374151">CORNER LOT - Additional street frontage</text>
+</g>
+)}
+
+{/* Measurements */}
+<g>
+<line x1="230" y1={100 + driveway_length * 1.5 + 10} x2="170" y2={100 + driveway_length * 1.5 + 10} stroke="#1E40AF" strokeWidth="1" markerStart="url(#arrowblue)" markerEnd="url(#arrowblue)"/>
+<text x="200" y={100 + driveway_length * 1.5 + 25} textAnchor="middle" fontSize="9" fill="#1E40AF">
+{garage_spaces * 9}' wide
+</text>
+</g>
+
+<defs>
+<marker id="arrowblue" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+<polygon points="0,0 10,5 0,10" fill="#1E40AF"/>
+</marker>
+</defs>
+</svg>
+
+<div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px'}}>
+<div style={{padding: '10px', background: '#DBEAFE', borderRadius: '8px'}}>
+<div style={{fontWeight: 'bold', color: '#1E40AF', marginBottom: '4px'}}>✅ Driveway</div>
+<div>{driveway_length} feet × {garage_spaces * 9} feet</div>
+<div style={{fontSize: '11px', color: '#3B82F6'}}>{driveway_length * garage_spaces * 9} sq ft</div>
+</div>
+
+{include_walkway && (
+<div style={{padding: '10px', background: '#DBEAFE', borderRadius: '8px'}}>
+<div style={{fontWeight: 'bold', color: '#1E40AF', marginBottom: '4px'}}>✅ Walkway</div>
+<div>{walkway_length} feet × 4 feet</div>
+<div style={{fontSize: '11px', color: '#3B82F6'}}>{walkway_length * 4} sq ft</div>
 </div>
 )}
 
-<div style={{display: 'flex', gap: '12px'}}>
-<button type="button" onClick={onCancel} disabled={processing}
-style={{flex: 1, padding: '12px', border: '2px solid #E5E7EB', borderRadius: '8px',
-background: 'white', cursor: 'pointer', fontWeight: '600'}}>
-Cancel
-</button>
-<button type="submit" disabled={processing} className="btn-black" style={{flex: 1}}>
-{processing ? 'Processing...' : `Authorize $${amount.toFixed(2)}`}
-</button>
+{include_deck && (
+<div style={{padding: '10px', background: '#DBEAFE', borderRadius: '8px'}}>
+<div style={{fontWeight: 'bold', color: '#1E40AF', marginBottom: '4px'}}>✅ Deck</div>
+<div>12 feet × 16 feet</div>
+<div style={{fontSize: '11px', color: '#3B82F6'}}>192 sq ft</div>
 </div>
-</form>
+)}
 
-<div style={{marginTop: '24px', padding: '12px', background: '#F3F4F6', borderRadius: '8px', fontSize: '12px', color: '#6B7280'}}>
-<div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
-<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-<path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
-</svg>
-<strong>Payment Protection</strong>
+<div style={{padding: '10px', background: '#FEE2E2', borderRadius: '8px'}}>
+<div style={{fontWeight: 'bold', color: '#991B1B', marginBottom: '4px'}}>❄️ Snow Depth</div>
+<div style={{fontSize: '16px'}}>{snow_depth} inches</div>
+<div style={{fontSize: '11px', color: '#DC2626'}}>
+{snow_depth <= 6 ? 'Light' : snow_depth <= 10 ? 'Moderate' : 'Heavy'} accumulation
 </div>
-<ul style={{paddingLeft: '20px', lineHeight: '1.6'}}>
-<li>Your card is authorized but NOT charged yet</li>
-<li>Payment only captured when job is completed</li>
-<li>Full refund if job is cancelled</li>
-<li>Secured by Stripe encryption</li>
-</ul>
+</div>
+</div>
+
+<div style={{marginTop: '12px', padding: '10px', background: '#F0FDF4', borderRadius: '8px', fontSize: '12px', color: '#166534'}}>
+<strong>Est. Time:</strong> {Math.round(((driveway_length * garage_spaces * 9) + (include_walkway ? walkway_length * 4 : 0) + (include_deck ? 192 : 0)) / 500 * 30)} minutes
+</div>
+</div>
+);
+};
+
+const CleaningSchematic = ({ data }) => {
+const { sqft, bedrooms, bathrooms, stories, has_pets, cleaning_type } = data.scope;
+
+const rooms = [
+{ name: 'Master Bedroom', x: 50, y: 40, w: 80, h: 60, color: '#DBEAFE' },
+{ name: `Bedroom 2`, x: 140, y: 40, w: 60, h: 60, color: '#DBEAFE' },
+{ name: `Bedroom ${bedrooms}`, x: 210, y: 40, w: 60, h: 60, color: '#DBEAFE' },
+{ name: 'Kitchen', x: 50, y: 110, w: 70, h: 50, color: '#FEF3C7' },
+{ name: 'Living Room', x: 130, y: 110, w: 90, h: 50, color: '#F3E8FF' },
+{ name: 'Bath 1', x: 230, y: 110, w: 40, h: 50, color: '#E0E7FF' },
+{ name: 'Bath 2', x: 50, y: 170, w: 60, h: 40, color: '#E0E7FF' },
+{ name: 'Hallway', x: 120, y: 170, w: 100, h: 40, color: '#F3F4F6' }
+];
+
+return (
+<div className="schematic-card" style={{borderColor: '#86EFAC', background: '#F0FDF4'}}>
+<div style={{fontSize: '14px', fontWeight: 'bold', color: '#059669', marginBottom: '16px', textAlign: 'center'}}>
+✨ HOUSE CLEANING SCOPE - ROOM BY ROOM
+</div>
+
+<div style={{display: 'flex', gap: '16px', marginBottom: '16px'}}>
+<div style={{flex: 1}}>
+<svg viewBox="0 0 320 220" style={{width: '100%', height: 'auto'}}>
+{/* Floor plan */}
+<rect x="40" y="30" width="240" height="185" fill="#FAFAFA" stroke="black" strokeWidth="3"/>
+
+{rooms.slice(0, bedrooms + 3).map((room, i) => (
+<g key={i}>
+<rect x={room.x} y={room.y} width={room.w} height={room.h} fill={room.color} stroke="#374151" strokeWidth="1.5"/>
+<text x={room.x + room.w/2} y={room.y + room.h/2 + 4} textAnchor="middle" fontSize="10" fontWeight="500">
+{room.name}
+</text>
+</g>
+))}
+
+{/* Pet indicator */}
+{has_pets && (
+<g>
+<circle cx="260" cy="200" r="8" fill="#F59E0B"/>
+<text x="260" y="204" textAnchor="middle" fontSize="12">🐾</text>
+</g>
+)}
+
+{/* Legend */}
+<g transform="translate(10, 10)">
+<text fontSize="11" fontWeight="bold" fill="#059669">{sqft.toLocaleString()} sq ft</text>
+<text y="14" fontSize="9">{bedrooms} Bed • {bathrooms} Bath</text>
+<text y="26" fontSize="9" fill="#166534">{stories === 1 ? 'Single' : 'Multi'}-floor {cleaning_type}</text>
+</g>
+</svg>
+</div>
+
+<div style={{flex: '0 0 140px'}}>
+<div style={{fontSize: '12px', fontWeight: 'bold', color: '#059669', marginBottom: '8px'}}>
+Cleaning Checklist:
+</div>
+{[
+`${bedrooms} Bedrooms`,
+`${Math.floor(bathrooms)} Full Baths`,
+'Kitchen (full)',
+'Living areas',
+'Hallways',
+'Vacuum all floors',
+'Dust surfaces',
+'Wipe counters',
+has_pets ? '🐾 Pet hair removal' : null
+].filter(Boolean).map((item, i) => (
+<div key={i} style={{fontSize: '11px', padding: '4px 0', borderBottom: '1px solid #BBF7D0'}}>
+✓ {item}
+</div>
+))}
+</div>
+</div>
+
+<div style={{padding: '10px', background: '#DCFCE7', borderRadius: '8px', fontSize: '12px', color: '#166534'}}>
+<strong>Estimated Time:</strong> {Math.round(sqft / 700)}-{Math.round(sqft / 500)} hours
+{has_pets && <span> • <strong>+30 min</strong> for pet hair</span>}
+</div>
+</div>
+);
+};
+
+const DogWalkingRoute = ({ data }) => {
+const { duration, distance_km, start_location } = data.scope;
+
+return (
+<div className="schematic-card" style={{borderColor: '#FCD34D', background: '#FEF3C7'}}>
+<div style={{fontSize: '14px', fontWeight: 'bold', color: '#92400E', marginBottom: '16px', textAlign: 'center'}}>
+🐕 {duration} MINUTE WALKING ROUTE
+</div>
+
+<svg viewBox="0 0 300 250" style={{width: '100%', height: 'auto'}}>
+{/* Circular route */}
+<circle cx="150" cy="125" r="80" fill="none" stroke="#10B981" strokeWidth="4" strokeDasharray="8,4"/>
+
+{/* Start/End */}
+<circle cx="150" cy="45" r="12" fill="#22C55E" stroke="black" strokeWidth="2"/>
+<text x="150" y="30" textAnchor="middle" fontSize="12" fontWeight="bold">START/END</text>
+<text x="150" y="52" textAnchor="middle" fontSize="10" fill="white">🏠</text>
+
+{/* Waypoints */}
+{[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => {
+const rad = (angle - 90) * Math.PI / 180;
+const x = 150 + 80 * Math.cos(rad);
+const y = 125 + 80 * Math.sin(rad);
+return i > 0 && (
+<g key={i}>
+<circle cx={x} cy={y} r="6" fill="#F59E0B" stroke="black" strokeWidth="1"/>
+<text x={x} y={y - 10} textAnchor="middle" fontSize="9" fontWeight="bold">{i}</text>
+</g>
+);
+})}
+
+{/* Park elements */}
+<circle cx="100" cy="100" r="20" fill="#22C55E" opacity="0.3"/>
+<text x="100" y="105" textAnchor="middle" fontSize="18">🌳</text>
+
+<circle cx="200" cy="150" r="20" fill="#22C55E" opacity="0.3"/>
+<text x="200" y="155" textAnchor="middle" fontSize="18">🌳</text>
+
+{/* Bench */}
+<rect x="140" y="185" width="20" height="8" fill="#8B4513"/>
+<text x="150" y="195" textAnchor="middle" fontSize="12">🪑</text>
+
+{/* Distance info */}
+<g transform="translate(150, 220)">
+<text textAnchor="middle" fontSize="12" fontWeight="bold" fill="#92400E">
+{distance_km.toFixed(1)} km ({(distance_km * 0.621).toFixed(1)} mi)
+</text>
+<text y="15" textAnchor="middle" fontSize="10" fill="#78350F">
+Circular route • Returns to start
+</text>
+</g>
+</svg>
+
+<div style={{padding: '10px', background: '#FEF3C7', borderRadius: '8px', fontSize: '12px', marginTop: '12px'}}>
+<div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '6px'}}>
+<span>🏞️ Park-friendly route</span>
+<span>⏱️ {duration} min duration</span>
+</div>
+<div style={{color: '#78350F', fontSize: '11px'}}>
+Route includes shade areas, grass patches, and rest stops
 </div>
 </div>
 </div>
 );
 };
 
+const PropertyConfirmation = ({ property, onConfirm, onEdit }) => (
+<div className="confirmation-box">
+<div style={{fontSize: '13px', fontWeight: 'bold', color: '#1E40AF', marginBottom: '10px'}}>
+🏠 I found your property - Please confirm this is correct:
+</div>
+<div style={{fontSize: '13px', lineHeight: '1.6', marginBottom: '12px'}}>
+<strong>Address:</strong> {property.address}<br/>
+<strong>Type:</strong> {property.home_type} • {property.square_feet?.toLocaleString()} sq ft<br/>
+<strong>Layout:</strong> {property.bedrooms} bed / {property.bathrooms} bath • {property.stories} floor{property.stories > 1 ? 's' : ''}<br/>
+{property.driveway_length_ft && <><strong>Driveway:</strong> {property.driveway_length_ft} ft ({property.garage_spaces}-car garage)<br/></>}
+{property.lot_size_sqft && <><strong>Lot:</strong> {property.lot_size_sqft.toLocaleString()} sq ft<br/></>}
+{property.corner_lot && <span style={{color: '#DC2626'}}>• Corner lot</span>}
+</div>
+<div style={{display: 'flex', gap: '8px'}}>
+<button onClick={onConfirm} className="btn-banana" style={{flex: 1, padding: '8px'}}>
+✅ Yes, this is correct
+</button>
+<button onClick={onEdit} style={{flex: 1, padding: '8px', background: 'white', border: '2px solid #E5E7EB', borderRadius: '8px', cursor: 'pointer'}}>
+✏️ Edit address
+</button>
+</div>
+</div>
+);
+
 // ============ MAIN APP ============
+
 const App = () => {
 const [userMode, setUserMode] = useState('customer');
 const [messages, setMessages] = useState([]);
 const [input, setInput] = useState("");
 const [isLoading, setIsLoading] = useState(false);
-const [jobContext, setJobContext] = useState(null);
-const [showPayment, setShowPayment] = useState(false);
-const [pendingBooking, setPendingBooking] = useState(null);
+const [ctx, setCtx] = useState({});
 const messagesEndRef = useRef(null);
 
 useEffect(() => {
-setJobContext(null);
-setMessages([{
-role: 'ai',
-text: userMode === 'customer'
-? "Hi neighbor! 👋 I'm NeighborTask Concierge v3.2 with AI property intelligence and secure payment processing. What can I help you with today?"
-: "Ready to help neighbors? Let's set up your Helper profile and get you verified."
-}]);
+setCtx({});
+const welcome = userMode === 'customer'
+? "Hi! 👋 I'm your NeighborTask Concierge.\n\nI'll help you book a service with smart property analysis and weather-aware pricing.\n\nWhat service do you need today?"
+: "Welcome to NeighborTask Helper Onboarding!\n\nI'll help you create a professional profile to earn money helping neighbors.\n\nLet's start with your full name.";
+setMessages([{ role: 'ai', text: welcome }]);
 }, [userMode]);
 
 useEffect(() => {
 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 }, [messages]);
 
-const handlePaymentSuccess = async (paymentIntent) => {
-setShowPayment(false);
-setMessages(prev => [...prev, {
-role: 'ai',
-text: `✅ Payment authorized successfully!\n\nYour booking is confirmed. Job ID: ${pendingBooking.jobId}\n\nWe're matching you with a verified helper now. You'll receive:\n📧 Email confirmation\n📱 Text updates when helper is assigned\n\nYour card will only be charged after the job is completed to your satisfaction.`
-}]);
-};
-
-const handleBookingConfirmation = (bookingData) => {
-setPendingBooking(bookingData);
-setShowPayment(true);
-};
-
-const callBackend = async (message, userMode, currentContext, history) => {
-if (!BACKEND_URL || BACKEND_URL === "YOUR_BACKEND_URL_HERE") {
-return mockCustomerAI(message, history, currentContext);
-}
-
-try {
-const response = await fetch(BACKEND_URL, {
-method: "POST",
-headers: { "Content-Type": "text/plain" },
-body: JSON.stringify({
-action: "chat",
-mode: userMode,
-message: message,
-context: currentContext,
-history: history || []
-})
-});
-
-if (!response.ok) throw new Error(`HTTP ${response.status}`);
-const data = await response.json();
-if (!data.success) throw new Error(data.error);
-
-// Check if booking is ready for payment
-if (data.ready_for_payment) {
-handleBookingConfirmation(data.booking_data);
-}
-
-return {
-text: data.text || "No response",
-property: data.property,
-visual: data.visual,
-newContext: data.newContext || currentContext
-};
-} catch (error) {
-console.error("Backend Error:", error);
-return { text: "⚠ Connection error: " + error.message };
-}
-};
-
-const mockCustomerAI = async (msg, h, ctx) => {
-return new Promise(r => setTimeout(() => {
-let res = { text: "", visual: null, newContext: ctx || {} };
-const low = msg.toLowerCase();
-if (!ctx?.service) {
-if (low.includes("snow")) {
-res.text = "I found your property - 2-car garage with an 80-foot driveway.\n\nHow much snow? (4-6\" / 6-10\" / 10+\")";
-res.visual = "driveway";
-res.newContext = { service: "Snow", step: "details" };
-} else {
-res.text = "I can help with Snow, Cleaning, Lawn, and more. What do you need?";
-}
-} else if (ctx.step === "details") {
-res.text = "Perfect! Based on your property:\n\n✓ 80-ft driveway on corner lot\n✓ Estimated 30-40 min job\n✓ Price: $65-85\n\nReady to book? (Type 'yes' to continue)";
-res.newContext.step = "confirm";
-} else if (ctx.step === "confirm") {
-res.text = "Great! I'll need your contact info:\n\nPlease provide:\n• Name\n• Email\n• Phone number";
-res.newContext.step = "contact";
-} else {
-res.text = "Thanks! Opening secure payment...";
-setTimeout(() => {
-handleBookingConfirmation({
-jobId: 'DEMO_' + Date.now(),
-amount: 75,
-name: 'Demo User',
-email: 'demo@example.com'
-});
-}, 1000);
-}
-r(res);
-}, 1000));
-};
-
 const handleSend = async (textOverride = null) => {
 const text = textOverride || input;
 if (!text.trim()) return;
 
-const outgoingHistory = messages;
-const newMsgs = [...messages, { role: 'user', text: text }];
-setMessages(newMsgs);
+setMessages(prev => [...prev, { role: 'user', text }]);
 setInput("");
 setIsLoading(true);
 
 try {
-const response = await callBackend(text, userMode, jobContext, outgoingHistory);
+const response = await fetch(BACKEND_URL || 'mock', {
+method: 'POST',
+headers: { 'Content-Type': 'text/plain' },
+body: JSON.stringify({
+action: 'chat',
+mode: userMode,
+message: text,
+context: ctx,
+history: messages
+})
+}).then(r => r.json()).catch(() => mockResponse(text, userMode, ctx));
+
 setMessages(prev => [...prev, {
 role: 'ai',
 text: response.text,
-visual: response.visual,
-property: response.property
+schematic: response.schematic_data,
+property: response.property,
+weather: response.weather
 }]);
-if (response.newContext) setJobContext(response.newContext);
-} catch (error) {
-setMessages(prev => [...prev, { role: 'ai', text: "Error. Try again?" }]);
+
+if (response.newContext) setCtx(response.newContext);
+} catch (err) {
+setMessages(prev => [...prev, { role: 'ai', text: "Error: " + err.message }]);
 } finally {
 setIsLoading(false);
 }
 };
 
+const mockResponse = (msg, mode, context) => {
+if (mode === 'helper') {
+if (!context.helper_name) return { text: "Thanks! What's your email and phone number?\n\n(Format: email, phone)" };
+if (!context.helper_email) return { text: "Perfect! What's your home address?\n\nThis helps us match you with nearby jobs." };
+return { text: "Great! How far are you willing to travel? (5, 10, or 15 miles)" };
+}
+
+const low = msg.toLowerCase();
+if (low.includes('snow')) {
+return {
+text: "I found your property at 123 Main St with an 80-foot 2-car driveway.\n\nIs this correct?",
+property: { address: '123 Main St', driveway_length_ft: 80, garage_spaces: 2 }
+};
+}
+return { text: "I can help with snow removal, cleaning, lawn care, and dog walking. What do you need?" };
+};
+
 return (
 <div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--paper-white)'}}>
-{showPayment && (
-<PaymentModal
-amount={pendingBooking.amount}
-jobData={pendingBooking}
-onSuccess={handlePaymentSuccess}
-onCancel={() => setShowPayment(false)}
+<div style={{background: 'white', borderBottom: '2px solid var(--nano-black)', padding: '16px', position: 'sticky', top: 0, zIndex: 10}}>
+<div style={{maxWidth: '48rem', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+<div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+<div style={{width: '36px', height: '36px', background: 'var(--banana-yellow)', borderRadius: '8px', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold'}}>N</div>
+<span style={{fontSize: '20px', fontWeight: 'bold'}}>NeighborTask</span>
+<span style={{fontSize: '10px', background: '#3B82F6', color: 'white', padding: '3px 7px', borderRadius: '4px', fontWeight: 'bold'}}>v5.0</span>
+</div>
+<button onClick={() => setUserMode(m => m === 'customer' ? 'helper' : 'customer')} className="btn-banana" style={{padding: '8px 16px', fontSize: '14px'}}>
+{userMode === 'customer' ? '🔧 Helper Mode' : '👤 Customer Mode'}
+</button>
+</div>
+</div>
+
+<main style={{flex: 1, maxWidth: '48rem', width: '100%', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column'}}>
+<div style={{flex: 1, overflowY: 'auto', marginBottom: '16px'}}>
+{messages.map((msg, i) => (
+<div key={i} style={{display: 'flex', justifyContent: msg.role === 'ai' ? 'flex-start' : 'flex-end'}}>
+<div className={msg.role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user'}>
+<div style={{whiteSpace: 'pre-wrap', lineHeight: '1.5'}}>{msg.text}</div>
+
+{msg.property && !ctx.property_verified && (
+<PropertyConfirmation
+property={msg.property}
+onConfirm={() => setCtx({...ctx, property_verified: true})}
+onEdit={() => setMessages(prev => [...prev, {role: 'ai', text: 'No problem! Please provide the correct address.'}])}
 />
 )}
 
-<div style={{width: '100%', background: 'white', borderBottom: '2px solid var(--nano-black)',
-padding: '16px', position: 'sticky', top: 0, zIndex: 10}}>
-<div style={{maxWidth: '48rem', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-<div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-<div style={{width: '32px', height: '32px', background: 'var(--banana-yellow)', borderRadius: '8px',
-border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center',
-fontWeight: 'bold', fontSize: '20px'}}>N</div>
-<span className="brand-font" style={{fontSize: '20px'}}>NeighborTask</span>
-<span style={{fontSize: '10px', background: '#3B82F6', color: 'white', padding: '2px 6px',
-borderRadius: '4px', fontWeight: 'bold'}}>v3.2</span>
-<span style={{fontSize: '10px', background: '#22C55E', color: 'white', padding: '2px 6px',
-borderRadius: '4px', fontWeight: 'bold'}}>🔒 Secure</span>
-</div>
-<button onClick={() => setUserMode(userMode === 'customer' ? 'helper' : 'customer')}
-className="btn-banana" style={{padding: '6px 12px', fontSize: '14px', borderRadius: '20px'}}>
-{userMode === 'customer' ? 'Helper Mode' : 'Customer Mode'}
-</button>
-</div>
-</div>
-
-<main style={{flex: 1, width: '100%', maxWidth: '48rem', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column'}}>
-{userMode === 'customer' && messages.length < 3 && (
-<div style={{marginBottom: '24px'}}>
-<p style={{fontSize: '12px', fontWeight: 'bold', color: '#9CA3AF', textTransform: 'uppercase',
-letterSpacing: '0.05em', marginBottom: '12px'}}>Popular Services</p>
-<div style={{display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px'}}>
-{[
-{i:"❄️",l:"Snow Removal",t:"I need snow removal"},
-{i:"✨",l:"Cleaning",t:"I need house cleaning"},
-{i:"🌸",l:"Lawn Care",t:"I need lawn mowing"}
-].map((s,i) => (
-<button key={i} onClick={() => handleSend(s.t)}
-style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
-background: 'white', border: '2px solid var(--nano-black)', borderRadius: '20px',
-cursor: 'pointer', whiteSpace: 'nowrap'}}>
-<span>{s.i}</span><span style={{fontWeight: 500}}>{s.l}</span>
-</button>
-))}
-</div>
-</div>
-)}
-
-<div style={{flex: 1, overflowY: 'auto', marginBottom: '16px', paddingRight: '8px'}}>
-{messages.map((msg, idx) => (
-<div key={idx} style={{display: 'flex', width: '100%', marginBottom: '16px',
-justifyContent: msg.role === 'ai' ? 'flex-start' : 'flex-end'}}>
-<div className={msg.role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user'}
-style={{maxWidth: '85%', padding: '16px'}}>
-<p style={{fontSize: '14px', lineHeight: '1.625', whiteSpace: 'pre-wrap'}}>{msg.text}</p>
+{msg.schematic?.type === 'snow_removal_schematic' && <SnowRemovalSchematic data={msg.schematic} />}
+{msg.schematic?.type === 'room_layout_schematic' && <CleaningSchematic data={msg.schematic} />}
+{msg.schematic?.type === 'walking_route_schematic' && <DogWalkingRoute data={msg.schematic} />}
 </div>
 </div>
 ))}
 {isLoading && (
-<div style={{display: 'flex', justifyContent: 'flex-start', width: '100%', marginBottom: '16px'}}>
-<div className="chat-bubble-ai" style={{padding: '16px', display: 'flex', gap: '4px'}}>
+<div style={{display: 'flex'}}>
+<div className="chat-bubble-ai">
 <div className="loader-dot"></div>
 <div className="loader-dot"></div>
 <div className="loader-dot"></div>
@@ -415,24 +449,18 @@ style={{maxWidth: '85%', padding: '16px'}}>
 <div ref={messagesEndRef} />
 </div>
 
-<div className="card-nano" style={{padding: '8px', display: 'flex', alignItems: 'center', gap: '8px'}}>
-<input type="text" value={input} onChange={(e) => setInput(e.target.value)}
-onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-placeholder="Type your address and what you need..."
-style={{flex: 1, padding: '12px', outline: 'none', fontSize: '16px', background: 'transparent', border: 'none'}}
+<div className="card-nano" style={{padding: '8px', display: 'flex', gap: '8px'}}>
+<input
+value={input}
+onChange={e => setInput(e.target.value)}
+onKeyPress={e => e.key === 'Enter' && handleSend()}
+placeholder={userMode === 'customer' ? "Type your address and service..." : "Type your response..."}
+style={{flex: 1, padding: '14px', border: 'none', outline: 'none', fontSize: '15px', background: 'transparent'}}
 />
-<button onClick={() => handleSend()} className="btn-banana"
-style={{width: '48px', height: '48px', borderRadius: '12px', display: 'flex',
-alignItems: 'center', justifyContent: 'center'}}>
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-<line x1="22" y1="2" x2="11" y2="13"></line>
-<polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-</svg>
+<button onClick={() => handleSend()} className="btn-banana" style={{padding: '12px 20px'}}>
+Send
 </button>
 </div>
-<p style={{textAlign: 'center', fontSize: '11px', color: '#9CA3AF', marginTop: '8px'}}>
-🔒 Powered by Stripe • Payments secured with bank-level encryption
-</p>
 </main>
 </div>
 );
