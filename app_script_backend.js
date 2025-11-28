@@ -2018,3 +2018,147 @@ function handleAdminAssign_(payload) {
 /****************************************************
  * END OF NEIGHBORTASK BACKEND v5.0 - CORRECTED
  ****************************************************/
+function calculateMatchScore_(helper, criteria, distance) {
+  var score = 100;
+  
+  // Distance penalty (closer is better)
+  score -= (distance * 2);
+  
+  // Rating bonus
+  score += (helper.rating || 0) * 10;
+  
+  // Experience bonus
+  score += Math.min((helper.jobs_completed || 0) * 2, 20);
+  
+  // Verification bonus
+  if (criteria.verification_required) {
+    // Check if helper has verification
+    score += 15;
+  }
+  
+  return Math.max(score, 0);
+}
+
+function calculateDistance_(lat1, lng1, lat2, lng2) {
+  return haversineKm_(lat1, lng1, lat2, lng2) / 1.609; // Convert to miles
+}
+
+function haversineKm_(lat1, lng1, lat2, lng2) {
+  var R = 6371; // Earth's radius in km
+  var dLat = (lat2 - lat1) * Math.PI / 180;
+  var dLng = (lng2 - lng1) * Math.PI / 180;
+  
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+          Math.sin(dLng/2) * Math.sin(dLng/2);
+  
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+// =============== SERVICE TYPE DETECTION =================
+function detectServiceType_(message) {
+  var lower = message.toLowerCase();
+  
+  for (var keyword in SERVICE_TYPES) {
+    if (lower.includes(keyword)) {
+      return SERVICE_TYPES[keyword];
+    }
+  }
+  
+  return null;
+}
+
+function extractAddress_(message) {
+  // Simple address extraction - looks for street patterns
+  var patterns = [
+    /\d+\s+[A-Z][a-z]+\s+(Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Lane|Ln|Boulevard|Blvd|Court|Ct|Way|Circle|Cir)/i,
+    /\d+\s+[A-Z]\w+\s+[A-Z]\w+/
+  ];
+  
+  for (var i = 0; i < patterns.length; i++) {
+    var match = message.match(patterns[i]);
+    if (match) {
+      return match[0];
+    }
+  }
+  
+  return null;
+}
+
+function determineSchematicNeeded_(serviceType, propertyData) {
+  if (!serviceType || !propertyData) return null;
+  
+  var schematics = {
+    snow_removal: "driveway_schematic",
+    lawn_care: "lot_layout",
+    house_cleaning: "floor_plan",
+    dog_walking: "route_map"
+  };
+  
+  return schematics[serviceType] || null;
+}
+
+// =============== VALIDATION UTILITIES =================
+function isValidEmail_(email) {
+  var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+function isValidPhone_(phone) {
+  var phoneRegex = /^\+?1?\d{10,14}$/;
+  var cleaned = phone.replace(/[\s\-\(\)\.]/g, '');
+  return phoneRegex.test(cleaned);
+}
+
+// =============== ADMIN ASSIGNMENT =================
+function handleAdminAssign_(payload) {
+  var jobId = payload.job_id;
+  var helperId = payload.helper_id;
+  var reason = payload.override_reason || "Manual assignment";
+  
+  if (!jobId || !helperId) {
+    return jsonResponse_({ success: false, error: "Missing job_id or helper_id" });
+  }
+  
+  assignJobToHelper_(jobId, helperId);
+  
+  // Log admin override
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var jobsSheet = ss.getSheetByName("Jobs");
+  var values = jobsSheet.getDataRange().getValues();
+  var header = values[0];
+  
+  for (var i = 1; i < values.length; i++) {
+    if (values[i][header.indexOf("Job ID")] === jobId) {
+      var notes = "Admin override: " + reason + " at " + new Date().toISOString();
+      jobsSheet.getRange(i + 1, header.indexOf("Admin Notes") + 1).setValue(notes);
+      break;
+    }
+  }
+  
+  notifyCustomerHelperAssigned_(jobId, helperId);
+  
+  // Notify the assigned helper
+  var helper = getHelperById_(helperId);
+  var job = getJobById_(jobId);
+  
+  if (helper && job) {
+    var message = "You've been assigned to job #" + jobId + "!\n\n" +
+      "Service: " + job.service_type + "\n" +
+      "Date: " + job.date + "\n" +
+      "Time: " + job.time_window + "\n" +
+      "Payment: $" + Math.round(job.price_low * HELPER_COMMISSION_RATE) + "-$" + Math.round(job.price_high * HELPER_COMMISSION_RATE);
+    
+    sendSMS_(helper.phone, message);
+  }
+  
+  return jsonResponse_({
+    success: true,
+    message: "Job manually assigned to helper"
+  });
+}
+
+/****************************************************
+ * END OF NEIGHBORTASK BACKEND v5.0 - CORRECTED
+ ****************************************************/
