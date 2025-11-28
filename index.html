@@ -1,391 +1,605 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeighborTask Concierge</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Leaflet CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeighborTask Concierge</title>
+<!-- React & ReactDOM -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<!-- Babel for JSX -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<!-- Leaflet CSS & JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+crossorigin=""></script>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+<style>
+/* CSS Variables */
+:root {
+--banana-yellow: #FFE135;
+--banana-peel: #FFD700;
+--nano-black: #1A1A1A;
+--paper-white: #FAFAFA;
+--gray-50: #F9FAFB;
+--gray-100: #F3F4F6;
+--gray-200: #E5E7EB;
+--gray-300: #D1D5DB;
+--gray-400: #9CA3AF;
+--gray-500: #6B7280;
+--gray-600: #4B5563;
+--gray-700: #374151;
+--gray-800: #1F2937;
+--green-50: #F0FDF4;
+--green-500: #22C55E;
+--green-600: #059669;
+--blue-50: #EFF6FF;
+--blue-200: #BFDBFE;
+--blue-500: #3B82F6;
+}
 
-    <style>
-        :root {
-            --banana-yellow: #FFE135;
-            --banana-peel: #FFD700;
-            --nano-black: #1A1A1A;
-            --paper-white: #FAFAFA;
-        }
-        body { font-family: 'Inter', sans-serif; background-color: var(--paper-white); color: var(--nano-black); }
-        h1, h2, h3, .brand-font { font-family: 'Space Grotesk', sans-serif; }
-        
-        .btn-banana {
-            background-color: var(--banana-yellow); color: var(--nano-black);
-            border: 2px solid var(--nano-black); box-shadow: 4px 4px 0px var(--nano-black);
-            transition: all 0.1s ease;
-        }
-        .btn-banana:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px var(--nano-black); }
-        
-        .card-nano { background: white; border: 2px solid var(--nano-black); border-radius: 16px; box-shadow: 6px 6px 0px rgba(0,0,0,0.1); }
-        
-        .chat-bubble-ai { background: white; border: 2px solid var(--nano-black); border-radius: 16px 16px 16px 0px; box-shadow: 2px 2px 0px rgba(0,0,0,0.05); }
-        .chat-bubble-user { background: var(--banana-yellow); color: var(--nano-black); border: 2px solid var(--nano-black); border-radius: 16px 16px 0px 16px; box-shadow: 2px 2px 0px rgba(0,0,0,0.1); }
-        
-        .loader-dot { animation: bounce 1.4s infinite ease-in-out both; }
-        .loader-dot:nth-child(1) { animation-delay: -0.32s; }
-        .loader-dot:nth-child(2) { animation-delay: -0.16s; }
-        
-        .map-container { height: 200px; width: 100%; border-radius: 12px; border: 2px solid var(--nano-black); margin-top: 12px; z-index: 1; }
-        
-        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-    </style>
+/* Reset & Base */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+font-family: 'Inter', sans-serif; 
+background-color: var(--paper-white); 
+color: var(--nano-black);
+line-height: 1.5;
+}
+h1, h2, h3, .brand-font { font-family: 'Space Grotesk', sans-serif; }
+
+/* Utility Classes */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-start { justify-content: flex-start; }
+.justify-end { justify-content: flex-end; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-around { justify-content: space-around; }
+.gap-1 { gap: 0.25rem; }
+.gap-2 { gap: 0.5rem; }
+.w-full { width: 100%; }
+.w-2 { width: 0.5rem; }
+.w-8 { width: 2rem; }
+.w-10 { width: 2.5rem; }
+.w-12 { width: 3rem; }
+.h-2 { height: 0.5rem; }
+.h-8 { height: 2rem; }
+.h-10 { height: 2.5rem; }
+.h-12 { height: 3rem; }
+.h-auto { height: auto; }
+.max-w-3xl { max-width: 48rem; }
+.min-h-screen { min-height: 100vh; }
+.flex-1 { flex: 1; }
+.flex-shrink-0 { flex-shrink: 0; }
+.p-1 { padding: 0.25rem; }
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 0.75rem; }
+.p-4 { padding: 1rem; }
+.px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.pr-2 { padding-right: 0.5rem; }
+.m-0 { margin: 0; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 0.75rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 0.75rem; }
+.mr-1 { margin-right: 0.25rem; }
+.my-3 { margin-top: 0.75rem; margin-bottom: 0.75rem; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-base { font-size: 1rem; line-height: 1.5rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.font-medium { font-weight: 500; }
+.font-bold { font-weight: 700; }
+.text-center { text-align: center; }
+.text-white { color: white; }
+.text-black { color: black; }
+.bg-white { background-color: white; }
+.bg-black { background-color: black; }
+.rounded { border-radius: 0.25rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-full { border-radius: 9999px; }
+.border { border-width: 1px; }
+.border-2 { border-width: 2px; }
+.border-black { border-color: black; }
+.border-dashed { border-style: dashed; }
+.cursor-pointer { cursor: pointer; }
+.uppercase { text-transform: uppercase; }
+.tracking-tight { letter-spacing: -0.025em; }
+.tracking-wide { letter-spacing: 0.025em; }
+.tracking-wider { letter-spacing: 0.05em; }
+.whitespace-nowrap { white-space: nowrap; }
+.whitespace-pre-wrap { white-space: pre-wrap; }
+.overflow-x-auto { overflow-x: auto; }
+.overflow-y-auto { overflow-y: auto; }
+.outline-none { outline: none; }
+.sticky { position: sticky; }
+.relative { position: relative; }
+.absolute { position: absolute; }
+.top-0 { top: 0; }
+.bottom-2 { bottom: 0.5rem; }
+.bottom-4 { bottom: 1rem; }
+.right-2 { right: 0.5rem; }
+.block { display: block; }
+.inline-block { inline-block; }
+.leading-relaxed { line-height: 1.625; }
+.z-10 { z-index: 10; }
+.shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+.transition-all { transition: all 0.15s ease; }
+.transition-colors { transition: color 0.15s, background-color 0.15s; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Color Classes */
+.bg-gray-50 { background-color: var(--gray-50); }
+.bg-gray-400 { background-color: var(--gray-400); }
+.bg-gray-800 { background-color: var(--gray-800); }
+.bg-green-50 { background-color: var(--green-50); }
+.bg-green-500 { background-color: var(--green-500); }
+.bg-blue-50 { background-color: var(--blue-50); }
+.text-gray-400 { color: var(--gray-400); }
+.text-gray-500 { color: var(--gray-500); }
+.text-green-600 { color: var(--green-600); }
+.text-blue-500 { color: var(--blue-500); }
+.border-gray-200 { border-color: var(--gray-200); }
+.border-gray-300 { border-color: var(--gray-300); }
+.border-blue-200 { border-color: var(--blue-200); }
+.border-green-300 { border-color: var(--green-300); }
+
+/* Custom Components */
+.btn-banana {
+background-color: var(--banana-yellow);
+color: var(--nano-black);
+border: 2px solid var(--nano-black);
+box-shadow: 4px 4px 0px var(--nano-black);
+transition: all 0.1s ease;
+cursor: pointer;
+}
+.btn-banana:hover { opacity: 0.9; }
+.btn-banana:active { 
+transform: translate(2px, 2px); 
+box-shadow: 2px 2px 0px var(--nano-black); 
+}
+
+.btn-black {
+background-color: black;
+color: white;
+border: 2px solid black;
+border-radius: 9999px;
+cursor: pointer;
+}
+.btn-black:hover { background-color: var(--gray-800); }
+
+.btn-yellow {
+background-color: var(--banana-yellow);
+color: black;
+border: 2px solid black;
+border-radius: 9999px;
+cursor: pointer;
+}
+.btn-yellow:hover { background-color: var(--banana-peel); }
+
+.card-nano {
+background: white;
+border: 2px solid var(--nano-black);
+border-radius: 16px;
+box-shadow: 6px 6px 0px rgba(0,0,0,0.1);
+}
+
+.chat-bubble-ai {
+background: white;
+border: 2px solid var(--nano-black);
+border-radius: 16px 16px 16px 0px;
+box-shadow: 2px 2px 0px rgba(0,0,0,0.05);
+}
+
+.chat-bubble-user {
+background: var(--banana-yellow);
+color: var(--nano-black);
+border: 2px solid var(--nano-black);
+border-radius: 16px 16px 0px 16px;
+box-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+}
+
+.service-pill {
+display: flex;
+align-items: center;
+gap: 0.5rem;
+padding: 0.5rem 1rem;
+background: white;
+border: 2px solid var(--nano-black);
+border-radius: 9999px;
+white-space: nowrap;
+cursor: pointer;
+transition: background-color 0.15s;
+}
+.service-pill:hover { background-color: var(--banana-yellow); }
+
+.loader-dot {
+width: 0.5rem;
+height: 0.5rem;
+background-color: var(--gray-400);
+border-radius: 50%;
+animation: bounce 1.4s infinite ease-in-out both;
+}
+.loader-dot:nth-child(1) { animation-delay: -0.32s; }
+.loader-dot:nth-child(2) { animation-delay: -0.16s; }
+
+.map-container {
+height: 200px;
+width: 100%;
+border-radius: 12px;
+border: 2px solid var(--nano-black);
+margin-top: 12px;
+z-index: 1;
+}
+
+.visual-card {
+margin: 0.75rem 0;
+padding: 1rem;
+border-radius: 0.75rem;
+border: 2px dashed;
+}
+
+.input-field {
+flex: 1;
+padding: 0.75rem;
+outline: none;
+font-size: 1.125rem;
+background: transparent;
+border: none;
+}
+
+@keyframes bounce {
+0%, 80%, 100% { transform: scale(0); }
+40% { transform: scale(1); }
+}
+
+/* Max Width Constraints */
+.max-w-85 { max-width: 85%; }
+
+/* Responsive */
+@media (min-width: 768px) {
+.md\:text-base { font-size: 1rem; line-height: 1.5rem; }
+}
+
+/* Border Variants */
+.border-nano-black { border-color: var(--nano-black); }
+.border-b-2 { border-bottom-width: 2px; }
+
+/* Z-index */
+.z-500 { z-index: 500; }
+</style>
 </head>
 <body>
-    <div id="root"></div>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+//=================================================================
+// ⚙ CONFIGURATION: CONNECT YOUR BACKEND HERE
+//=================================================================
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwESAzHEtVjad_ldprZpoFAuI8de_j8YqqkRn0CWS_68NzBRRvlNVaaTawwcORIdHIy/exec";
+//=================================================================
 
-        // =================================================================
-        // ⚙️ CONFIGURATION: CONNECT YOUR BACKEND HERE
-        // =================================================================
-        
-        // 1. Deploy your Google Apps Script as a Web App (Exec mode).
-        // 2. Paste the URL inside the quotes below.
-        // 3. If empty, the site runs in "Demo Mode" using the internal mock.
-        
-        const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwESAzHEtVjad_ldprZpoFAuI8de_j8YqqkRn0CWS_68NzBRRvlNVaaTawwcORIdHIy/exec"; 
-        
-        // Example Format: "https://script.google.com/macros/s/AKfycbx.../exec"
-        // =================================================================
+// --- VISUAL COMPONENTS (SVG) ---
+const DrivewayVisual = () => (
+<div className="visual-card bg-gray-50 border-gray-300">
+<div className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide text-center">Inferred Property Layout</div>
+<svg viewBox="0 0 200 100" className="w-full h-auto">
+<rect x="60" y="10" width="80" height="40" fill="#eee" stroke="black" strokeWidth="2"/>
+<path d="M 80 50 L 80 90 L 120 90 L 120 50" fill="#ddd" stroke="black" strokeWidth="2" strokeDasharray="4 2"/>
+<text x="100" y="35" textAnchor="middle" fontSize="10" fontWeight="bold">Your Home</text>
+<text x="100" y="75" textAnchor="middle" fontSize="8">2-Car Driveway</text>
+<rect x="85" y="55" width="12" height="25" rx="2" fill="#FFE135" stroke="black"/>
+<rect x="103" y="55" width="12" height="25" rx="2" fill="#FFE135" stroke="black"/>
+</svg>
+</div>
+);
 
+const LawnVisual = () => (
+<div className="visual-card bg-green-50 border-green-300">
+<div className="text-xs font-bold text-green-600 mb-2 uppercase tracking-wide text-center">Lot Size Estimation</div>
+<svg viewBox="0 0 200 100" className="w-full h-auto">
+<rect x="20" y="10" width="160" height="80" fill="#e6fffa" stroke="#059669" strokeWidth="2"/>
+<rect x="80" y="35" width="40" height="30" fill="white" stroke="black" strokeWidth="2"/>
+<text x="100" y="25" textAnchor="middle" fontSize="10" fill="#059669" fontWeight="bold">0.25 Acre Lot</text>
+<path d="M 30 20 L 35 15 M 40 80 L 45 75 M 150 30 L 155 25" stroke="#059669" strokeWidth="2"/>
+</svg>
+</div>
+);
 
-        // --- VISUAL COMPONENTS (SVG) ---
-        const DrivewayVisual = () => (
-            <div className="my-3 p-4 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                <div className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide text-center">Inferred Property Layout</div>
-                <svg viewBox="0 0 200 100" className="w-full h-auto">
-                    <rect x="60" y="10" width="80" height="40" fill="#eee" stroke="black" strokeWidth="2"/>
-                    <path d="M 80 50 L 80 90 L 120 90 L 120 50" fill="#ddd" stroke="black" strokeWidth="2" strokeDasharray="4 2"/>
-                    <text x="100" y="35" textAnchor="middle" fontSize="10" fontWeight="bold">Your Home</text>
-                    <text x="100" y="75" textAnchor="middle" fontSize="8">2-Car Driveway</text>
-                    <rect x="85" y="55" width="12" height="25" rx="2" fill="#FFE135" stroke="black"/>
-                    <rect x="103" y="55" width="12" height="25" rx="2" fill="#FFE135" stroke="black"/>
-                </svg>
-            </div>
-        );
+const RoomVisual = () => (
+<div className="visual-card bg-blue-50 border-blue-200">
+<div className="text-xs font-bold text-blue-500 mb-2 uppercase tracking-wide text-center">Standard Clean Scope</div>
+<div className="flex justify-around text-center text-xs mt-2">
+<div><div className="w-10 h-10 bg-white border-2 border-blue-200 rounded-lg flex items-center justify-center mb-1 mx-auto">🛏</div>3 Bed</div>
+<div><div className="w-10 h-10 bg-white border-2 border-blue-200 rounded-lg flex items-center justify-center mb-1 mx-auto">🛁</div>2 Bath</div>
+<div><div className="w-10 h-10 bg-white border-2 border-blue-200 rounded-lg flex items-center justify-center mb-1 mx-auto">🛋</div>Living</div>
+</div>
+</div>
+);
 
-        const LawnVisual = () => (
-            <div className="my-3 p-4 bg-green-50 rounded-xl border-2 border-dashed border-green-300">
-                <div className="text-xs font-bold text-green-600 mb-2 uppercase tracking-wide text-center">Lot Size Estimation</div>
-                <svg viewBox="0 0 200 100" className="w-full h-auto">
-                    <rect x="20" y="10" width="160" height="80" fill="#e6fffa" stroke="#059669" strokeWidth="2"/>
-                    <rect x="80" y="35" width="40" height="30" fill="white" stroke="black" strokeWidth="2"/>
-                    <text x="100" y="25" textAnchor="middle" fontSize="10" fill="#059669" fontWeight="bold">0.25 Acre Lot</text>
-                    <path d="M 30 20 L 35 15 M 40 80 L 45 75 M 150 30 L 155 25" stroke="#059669" strokeWidth="2"/>
-                </svg>
-            </div>
-        );
+const CommunityMap = ({ lat, lng, label }) => {
+const mapRef = useRef(null);
+useEffect(() => {
+if (!mapRef.current) return;
+const defaultLat = 41.7508;
+const defaultLng = -88.1535;
+const map = L.map(mapRef.current).setView([defaultLat, defaultLng], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+attribution: '&copy; OpenStreetMap' 
+}).addTo(map);
+L.circle([defaultLat, defaultLng], { 
+color: '#FFE135', 
+fillColor: '#FFE135', 
+fillOpacity: 0.4, 
+radius: 1200 
+}).addTo(map);
+L.marker([defaultLat, defaultLng]).addTo(map).bindPopup(label || "Verified Zone").openPopup();
+return () => { map.remove(); };
+}, []);
+return (
+<div className="relative">
+<div ref={mapRef} className="map-container"></div>
+<div className="absolute bottom-2 right-2 bg-white px-2 py-1 rounded border border-black text-xs font-bold shadow-sm z-500">📍 12 Verified Neighbors</div>
+</div>
+);
+};
 
-        const RoomVisual = () => (
-            <div className="my-3 p-4 bg-blue-50 rounded-xl border-2 border-dashed border-blue-300">
-                <div className="text-xs font-bold text-blue-500 mb-2 uppercase tracking-wide text-center">Standard Clean Scope</div>
-                <div className="flex justify-around text-center text-xs mt-2">
-                    <div><div className="w-10 h-10 bg-white border-2 border-blue-200 rounded-lg flex items-center justify-center mb-1 mx-auto">🛏️</div>3 Bed</div>
-                    <div><div className="w-10 h-10 bg-white border-2 border-blue-200 rounded-lg flex items-center justify-center mb-1 mx-auto">🛁</div>2 Bath</div>
-                    <div><div className="w-10 h-10 bg-white border-2 border-blue-200 rounded-lg flex items-center justify-center mb-1 mx-auto">🛋️</div>Living</div>
-                </div>
-            </div>
-        );
+// --- BACKEND HANDLER ---
+const callBackend = async (message, userMode, currentContext, history) => {
+if (!BACKEND_URL || BACKEND_URL.length < 10) {
+console.log("Using Mock AI (Backend URL missing)");
+return mockCustomerAI(message, history, currentContext);
+}
 
-        const CommunityMap = ({ lat, lng, label }) => {
-            const mapRef = useRef(null);
-            useEffect(() => {
-                if (!mapRef.current) return;
-                const defaultLat = 41.7508; 
-                const defaultLng = -88.1535;
-                const map = L.map(mapRef.current).setView([defaultLat, defaultLng], 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
-                L.circle([defaultLat, defaultLng], { color: '#FFE135', fillColor: '#FFE135', fillOpacity: 0.4, radius: 1200 }).addTo(map);
-                L.marker([defaultLat, defaultLng]).addTo(map).bindPopup(label || "Verified Zone").openPopup();
-                return () => { map.remove(); };
-            }, []);
-            return (
-                <div className="relative">
-                    <div ref={mapRef} className="map-container"></div>
-                    <div className="absolute bottom-2 right-2 bg-white px-2 py-1 rounded border border-black text-xs font-bold shadow-sm z-[500]">📍 12 Verified Neighbors</div>
-                </div>
-            );
-        };
+try {
+const response = await fetch(BACKEND_URL, {
+method: "POST",
+mode: "cors",
+headers: { "Content-Type": "text/plain;charset=utf-8" },
+body: JSON.stringify({
+action: "chat",
+mode: userMode,
+message: message,
+context: currentContext,
+history: history || []
+})
+});
 
-        // --- REAL BACKEND HANDLER ---
-        // NOTE: now accepts `history` so the backend can see the full conversation.
-        const callBackend = async (message, userMode, currentContext, history) => {
-            // 1. Check if Backend is Configured
-            if (!BACKEND_URL || BACKEND_URL.length < 10) {
-                console.log("Using Mock AI (Backend URL missing)");
-                return userMode === 'customer' 
-                    ? mockCustomerAI(message, null, currentContext) 
-                    : mockHelperAI(message, null, currentContext);
-            }
+if (!response.ok) {
+throw new Error(`HTTP error! status: ${response.status}`);
+}
 
-            // 2. Real Fetch Call
-            try {
-                // Google Apps Script requires text/plain to avoid CORS preflight in some setups
-                const response = await fetch(BACKEND_URL, {
-                    method: "POST",
-                    mode: "cors", 
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({
-                        action: "chat",
-                        mode: userMode,
-                        message: message,
-                        context: currentContext,
-                        history: history || []   // 👈 pass full chat history
-                    })
-                });
-                
-                const data = await response.json();
-                return data; // Expected format: { text, link, map, visual, newContext }
+const data = await response.json();
 
-            } catch (error) {
-                console.error("Backend Error:", error);
-                return { text: "⚠️ Connection error. I'm having trouble reaching the neighborhood server. Please try again." };
-            }
-        };
+if (!data.success) {
+throw new Error(data.error || "Backend returned success: false");
+}
 
-        // --- MOCK FALLBACKS (For Testing) ---
-        // Kept compact for fallback logic
-        const mockHelperAI = async (msg, h, ctx) => {
-            return new Promise(r => setTimeout(() => {
-                let res = { text: "", map: false, newContext: ctx || {} };
-                const low = msg.toLowerCase();
-                
-                if (!ctx?.step) {
-                    res.text = "Welcome! 🍌 First, what is your Name and Neighborhood?";
-                    res.newContext = { step: "name_loc" };
-                } else if (ctx.step === "name_loc") {
-                    res.text = "Great! I've pinned your location. What services can you offer? (Snow, Cleaning, Tutoring)";
-                    res.map = true; res.newContext.step = "skills";
-                } else if (ctx.step === "skills") {
-                    if (low.includes("clean") || low.includes("tutor")) {
-                        res.text = "For indoor/childcare tasks, we need verification. Ready to check ID?";
-                        res.newContext.step = "verify"; res.newContext.risk = "High";
-                    } else {
-                        res.text = "Outdoor tasks are Low Risk! What is your availability?";
-                        res.newContext.step = "avail";
-                    }
-                } else if (ctx.step === "verify") {
-                    res.text = "Please verify here:"; res.link = "#checkr"; res.newContext.step = "avail";
-                } else {
-                    res.text = "You're all set! Watch for texts. 🍌";
-                }
-                r(res);
-            }, 1000));
-        };
+return {
+text: data.text || data.reply || "No response from AI",
+link: data.link,
+map: data.map || false,
+visual: data.visual,
+newContext: data.newContext || currentContext
+};
+} catch (error) {
+console.error("Backend Error:", error);
+return {
+text: "⚠ Connection error. Please check your backend URL and try again.\n\nError: " + error.message
+};
+}
+};
 
-        const mockCustomerAI = async (msg, h, ctx) => {
-            return new Promise(r => setTimeout(() => {
-                let res = { text: "", map: false, visual: null, newContext: ctx || {} };
-                const low = msg.toLowerCase();
+// --- MOCK FALLBACK ---
+const mockCustomerAI = async (msg, h, ctx) => {
+return new Promise(r => setTimeout(() => {
+let res = { text: "", map: false, visual: null, newContext: ctx || {} };
+const low = msg.toLowerCase();
+if (!ctx?.service) {
+if (low.includes("snow")) {
+res.text = "I found your address. 2-car driveway detected. When do you need snow cleared?";
+res.visual = "driveway"; 
+res.newContext = { service: "Snow", step: "time" };
+} else if (low.includes("clean")) {
+res.text = "I see your home info. Standard clean scope (3bd/2ba). When do you need this?";
+res.visual = "room"; 
+res.newContext = { service: "Clean", step: "time" };
+} else if (low.includes("lawn")) {
+res.text = "Got it! I see your property. Looks like a quarter acre. When do you need mowing?";
+res.visual = "lawn";
+res.newContext = { service: "Lawn", step: "time" };
+} else {
+res.text = "I can help with Snow, Cleaning, Lawn, or Handyman. What do you need?";
+}
+} else if (ctx.step === "time") {
+res.text = "Got it. Estimated price is $45-$75 for your area. Ready to book?";
+res.newContext.step = "confirm";
+} else if (ctx.step === "confirm") {
+res.text = "Dispatching a verified helper. Please authorize payment hold:";
+res.link = "#stripe"; 
+res.map = true;
+} else {
+res.text = "Could you clarify your request?";
+}
+r(res);
+}, 1000));
+};
 
-                if (!ctx?.service) {
-                    if (low.includes("snow")) { 
-                        res.text = "I found your address. 2-car driveway detected. When do you need snow cleared?";
-                        res.visual = "driveway"; res.newContext = { service: "Snow", step: "time" };
-                    } else if (low.includes("clean")) {
-                        res.text = "I see your home info. Standard clean scope (3bd/2ba). When do you need this?";
-                        res.visual = "room"; res.newContext = { service: "Clean", step: "time" };
-                    } else {
-                        res.text = "I can help with Snow, Cleaning, or Handyman. What do you need?";
-                    }
-                } else if (ctx.step === "time") {
-                    res.text = "Got it. Estimated price is standard for your area. Ready to book?";
-                    res.newContext.step = "confirm";
-                } else if (ctx.step === "confirm") {
-                    res.text = "Dispatching a verified helper. Please authorize hold:";
-                    res.link = "#stripe"; res.map = true;
-                } else {
-                    res.text = "Could you clarify?";
-                }
-                r(res);
-            }, 1000));
-        };
+// --- APP COMPONENT ---
+const App = () => {
+const [userMode, setUserMode] = useState('customer');
+const [messages, setMessages] = useState([]);
+const [input, setInput] = useState("");
+const [isLoading, setIsLoading] = useState(false);
+const [jobContext, setJobContext] = useState(null);
+const messagesEndRef = useRef(null);
 
-        // --- APP COMPONENT ---
-        const App = () => {
-            const [userMode, setUserMode] = useState('customer'); 
-            const [messages, setMessages] = useState([]);
-            const [input, setInput] = useState("");
-            const [isLoading, setIsLoading] = useState(false);
-            const [jobContext, setJobContext] = useState(null); 
-            const messagesEndRef = useRef(null);
+useEffect(() => {
+setJobContext(null);
+setMessages([{
+role: 'ai',
+text: userMode === 'customer'
+? "Hi neighbor! 👋 I'm your Concierge. I can book snow removal, cleaning, handy-work, or tutoring. What can I get done for you?"
+: "Hi there! Ready to help your neighbors? Type 'Start' to create your Helper Profile."
+}]);
+}, [userMode]);
 
-            useEffect(() => {
-                setJobContext(null);
-                setMessages([{ 
-                    role: 'ai', 
-                    text: userMode === 'customer' 
-                        ? "Hi neighbor! 👋 I'm your Concierge. I can book snow removal, cleaning, handy-work, or tutoring. What can I get done for you?" 
-                        : "Hi there! Ready to help your neighbors? Type 'Start' to create your Helper Profile." 
-                }]);
-            }, [userMode]);
+useEffect(() => {
+messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+}, [messages]);
 
-            useEffect(() => {
-                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-            }, [messages]);
+const handleSend = async (textOverride = null) => {
+const text = textOverride || input;
+if (!text.trim()) return;
 
-            const handleSend = async (textOverride = null) => {
-                const text = textOverride || input;
-                if (!text.trim()) return;
+const outgoingHistory = messages;
+const newMsgs = [...messages, { role: 'user', text: text }];
+setMessages(newMsgs);
+setInput("");
+setIsLoading(true);
 
-                // history = all messages BEFORE this new user message
-                const outgoingHistory = messages;
+try {
+const response = await callBackend(text, userMode, jobContext, outgoingHistory);
+setMessages(prev => [...prev, {
+role: 'ai',
+text: response.text,
+link: response.link,
+showMap: response.map,
+visual: response.visual
+}]);
+if (response.newContext) setJobContext(response.newContext);
+} catch (error) {
+console.error(error);
+setMessages(prev => [...prev, { 
+role: 'ai', 
+text: "Connection glitch. Try again?" 
+}]);
+} finally {
+setIsLoading(false);
+}
+};
 
-                const newMsgs = [...messages, { role: 'user', text: text }];
-                setMessages(newMsgs);
-                setInput("");
-                setIsLoading(true);
+return (
+<div className="min-h-screen flex flex-col" style={{backgroundColor: 'var(--paper-white)'}}>
+{/* HEADER */}
+<div className="w-full bg-white border-b-2 border-nano-black p-4 sticky top-0 z-10">
+<div className="max-w-3xl mx-auto flex justify-between items-center">
+<div className="flex items-center gap-2 cursor-pointer" onClick={() => setUserMode('customer')}>
+<div className="w-8 h-8 rounded-lg border-2 border-black flex items-center justify-center font-bold text-xl" style={{backgroundColor: 'var(--banana-yellow)'}}>N</div>
+<span className="brand-font text-xl tracking-tight">NeighborTask</span>
+</div>
+<button
+onClick={() => setUserMode(userMode === 'customer' ? 'helper' : 'customer')}
+className={`px-3 py-1 text-sm font-bold transition-all ${userMode === 'customer' ? 'btn-black' : 'btn-yellow'}`}
+>
+{userMode === 'customer' ? 'Switch to Helper Mode' : 'Back to Customer Mode'}
+</button>
+</div>
+</div>
 
-                try {
-                    // CALL THE UNIFIED BACKEND HANDLER, passing history
-                    const response = await callBackend(text, userMode, jobContext, outgoingHistory);
-                    
-                    setMessages(prev => [...prev, { 
-                        role: 'ai', 
-                        text: response.text, 
-                        link: response.link,
-                        showMap: response.map,
-                        visual: response.visual
-                    }]);
-                    
-                    if (response.newContext) setJobContext(response.newContext);
+{/* MAIN CHAT */}
+<main className="flex-1 w-full max-w-3xl mx-auto p-4 flex flex-col">
+{/* Service Pills */}
+{userMode === 'customer' && messages.length < 3 && (
+<div className="mb-6">
+<p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Popular Services</p>
+<div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+{[
+{i:"❄️",l:"Snow Removal",t:"I need snow removal"},
+{i:"✨",l:"Cleaning",t:"I need house cleaning"},
+{i:"🔨",l:"Handyman",t:"I need a handyman"},
+{i:"🌸",l:"Lawn",t:"I need lawn mowing"}
+].map((s,i) => (
+<button key={i} onClick={() => handleSend(s.t)} className="service-pill">
+<span>{s.i}</span><span className="font-medium">{s.l}</span>
+</button>
+))}
+</div>
+</div>
+)}
 
-                } catch (error) {
-                    console.error(error);
-                    setMessages(prev => [...prev, { role: 'ai', text: "Connection glitch. Try again?" }]);
-                } finally {
-                    setIsLoading(false);
-                }
-            };
+{/* Chat Area */}
+<div className="flex-1 overflow-y-auto mb-4 pr-2">
+{messages.map((msg, idx) => (
+<div key={idx} className={`flex w-full mb-4 ${msg.role === 'ai' ? 'justify-start' : 'justify-end'}`}>
+<div className={`max-w-85 p-4 ${msg.role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user'}`}>
+<p className="text-sm md:text-base leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+{msg.showMap && <CommunityMap label="Verified Neighborhood Zone" />}
+{msg.visual === 'driveway' && <DrivewayVisual />}
+{msg.visual === 'lawn' && <LawnVisual />}
+{msg.visual === 'room' && <RoomVisual />}
+{msg.link && (
 
-            return (
-                <div className="min-h-screen flex flex-col bg-[#FAFAFA]">
-                    {/* HEADER */}
-                    <div className="w-full bg-white border-b-2 border-nano-black p-4 sticky top-0 z-10">
-                        <div className="max-w-3xl mx-auto flex justify-between items-center">
-                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setUserMode('customer')}>
-                                <div className="w-8 h-8 bg-[#FFE135] rounded-lg border-2 border-black flex items-center justify-center font-bold text-xl">N</div>
-                                <span className="brand-font text-xl tracking-tight">NeighborTask</span>
-                            </div>
-                            <button
-                                onClick={() => setUserMode(userMode === 'customer' ? 'helper' : 'customer')}
-                                className={`px-3 py-1 text-sm font-bold border-2 border-black rounded-full transition-all ${userMode === 'customer' ? 'bg-black text-white hover:bg-gray-800' : 'bg-[#FFE135] text-black hover:bg-[#FFD700]'}`}
-                            >
-                                {userMode === 'customer' ? 'Switch to Helper Mode' : 'Back to Customer Mode'}
-                            </button>
-                        </div>
-                    </div>
+href={msg.link}
+target="_blank"
+rel="noreferrer"
+className="mt-3 block w-full text-center py-2 bg-black text-white font-bold rounded-lg"
+style={{textDecoration: 'none'}}
+>
+Open Secure Link &rarr;
+</a>
+)}
+</div>
+</div>
+))}
+{isLoading && (
+<div className="flex justify-start w-full mb-4">
+<div className="chat-bubble-ai p-4 flex gap-1">
+<div className="loader-dot"></div>
+<div className="loader-dot"></div>
+<div className="loader-dot"></div>
+</div>
+</div>
+)}
+<div ref={messagesEndRef} />
+</div>
 
-                    {/* MAIN CHAT */}
-                    <main className="flex-1 w-full max-w-3xl mx-auto p-4 flex flex-col">
-                        {/* Service Pills (Customer Only) */}
-                        {userMode === 'customer' && messages.length < 3 && (
-                            <div className="mb-6">
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Popular Services</p>
-                                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                                    {[
-                                        {i:<i data-lucide="snowflake"></i>,l:"Snow Removal",t:"I need snow removal"},
-                                        {i:<i data-lucide="sparkles"></i>,l:"Cleaning",t:"I need house cleaning"},
-                                        {i:<i data-lucide="hammer"></i>,l:"Handyman",t:"I need a handyman"},
-                                        {i:<i data-lucide="flower"></i>,l:"Lawn",t:"I need lawn mowing"}
-                                    ].map((s,i) => (
-                                        <button
-                                            key={i}
-                                            onClick={() => handleSend(s.t)}
-                                            className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-nano-black rounded-full hover:bg-[#FFE135] transition-colors whitespace-nowrap"
-                                        >
-                                            {s.i}<span className="font-medium">{s.l}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+{/* Input */}
+<div className="card-nano p-2 flex items-center gap-2 sticky bottom-4">
+<input
+type="text"
+value={input}
+onChange={(e) => setInput(e.target.value)}
+onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+placeholder={userMode === 'customer' ? "Type your address and task..." : "Type your answer..."}
+className="input-field"
+/>
+<button onClick={() => handleSend()} className="btn-banana w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+</button>
+</div>
+<p className="text-center text-xs text-gray-400 mt-2">
+<span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+Active in Naperville, IL • Verified Neighbors
+</p>
+</main>
+</div>
+);
+};
 
-                        {/* Chat Area */}
-                        <div className="flex-1 overflow-y-auto mb-4 pr-2">
-                            {messages.map((msg, idx) => (
-                                <div key={idx} className={`flex w-full mb-4 ${msg.role === 'ai' ? 'justify-start' : 'justify-end'}`}>
-                                    <div className={`max-w-[85%] p-4 ${msg.role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user'}`}>
-                                        <p className="text-sm md:text-base leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                                        {msg.showMap && <CommunityMap label="Verified Neighborhood Zone" />}
-                                        {msg.visual === 'driveway' && <DrivewayVisual />}
-                                        {msg.visual === 'lawn' && <LawnVisual />}
-                                        {msg.visual === 'room' && <RoomVisual />}
-                                        {msg.link && (
-                                            <a
-                                                href={msg.link}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="mt-3 block w-full text-center py-2 bg-black text-white font-bold rounded-lg hover:opacity-90"
-                                            >
-                                                Open Secure Link &rarr;
-                                            </a>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                            {isLoading && (
-                                <div className="flex justify-start w-full mb-4">
-                                    <div className="chat-bubble-ai p-4 flex gap-1">
-                                        <div className="w-2 h-2 bg-gray-400 rounded-full loader-dot"></div>
-                                        <div className="w-2 h-2 bg-gray-400 rounded-full loader-dot"></div>
-                                        <div className="w-2 h-2 bg-gray-400 rounded-full loader-dot"></div>
-                                    </div>
-                                </div>
-                            )}
-                            <div ref={messagesEndRef} />
-                        </div>
-
-                        {/* Input */}
-                        <div className="card-nano p-2 flex items-center gap-2 sticky bottom-4">
-                            <input
-                                type="text"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                                placeholder={userMode === 'customer' ? "Type your address and task..." : "Type your answer..."}
-                                className="flex-1 p-3 outline-none text-lg bg-transparent"
-                            />
-                            <button
-                                onClick={() => handleSend()}
-                                className="btn-banana w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                            </button>
-                        </div>
-                        <p className="text-center text-xs text-gray-400 mt-2">
-                            <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                            Active in Naperville, IL • Verified Neighbors
-                        </p>
-                    </main>
-                </div>
-            );
-        };
-
-        lucide.createIcons();
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+lucide.createIcons();
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
 </body>
 </html>
