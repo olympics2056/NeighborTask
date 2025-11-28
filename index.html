@@ -29,6 +29,9 @@ box-shadow: 4px 4px 0 var(--nano-black); cursor: pointer; transition: all 0.1s; 
 .schematic-card { margin: 16px 0; padding: 16px; border-radius: 12px; border: 2px solid; }
 .confirmation-box { margin: 12px 0; padding: 12px; background: #F0F9FF; border: 2px solid #3B82F6; border-radius: 8px; }
 .info-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; margin: 4px 4px 0 0; }
+.debug-panel { background: #fff3cd; border: 2px solid #ffc107; padding: 12px; margin: 12px; border-radius: 8px; font-family: monospace; font-size: 12px; }
+.debug-panel summary { cursor: pointer; font-weight: bold; color: #856404; margin-bottom: 8px; }
+.debug-panel pre { background: white; padding: 8px; border-radius: 4px; overflow-x: auto; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -36,25 +39,22 @@ box-shadow: 4px 4px 0 var(--nano-black); cursor: pointer; transition: all 0.1s; 
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
 
+// ⚠️ UPDATE THIS WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
 const BACKEND_URL = "YOUR_BACKEND_URL_HERE";
 
 // ============ ENHANCED SCHEMATICS ============
-
 const SnowRemovalSchematic = ({ data }) => {
 const { driveway_length, garage_spaces, include_walkway, walkway_length, include_deck, snow_depth, corner_lot } = data.scope;
-
 return (
 <div className="schematic-card" style={{borderColor: '#93C5FD', background: '#EFF6FF'}}>
 <div style={{fontSize: '14px', fontWeight: 'bold', color: '#1E40AF', marginBottom: '16px', textAlign: 'center'}}>
 ❄️ SNOW REMOVAL SCOPE - CONFIRMED AREAS
 </div>
-
 <svg viewBox="0 0 400 300" style={{width: '100%', height: 'auto', marginBottom: '16px'}}>
 {/* House */}
 <rect x="150" y="30" width="100" height="70" fill="#8B7355" stroke="black" strokeWidth="2"/>
 <polygon points="200,20 140,30 260,30" fill="#654321" stroke="black" strokeWidth="2"/>
 <text x="200" y="70" textAnchor="middle" fontSize="12" fontWeight="bold" fill="white">HOUSE</text>
-
 {/* Driveway */}
 <rect x="170" y="100" width="60" height={driveway_length * 1.5} fill="#D3D3D3" stroke="black" strokeWidth="3"/>
 <text x="200" y={100 + driveway_length * 0.75} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#1E40AF">
@@ -63,12 +63,10 @@ return (
 <text x="200" y={100 + driveway_length * 0.9} textAnchor="middle" fontSize="11" fill="#374151">
 {driveway_length} feet long
 </text>
-
 {/* Snow depth indicators */}
 {[...Array(8)].map((_, i) => (
 <circle key={`snow${i}`} cx={160 + i * 10} cy={110 + i * 12} r="4" fill="#B0E0E6" opacity="0.8"/>
 ))}
-
 {/* Walkway */}
 {include_walkway && (
 <g>
@@ -78,7 +76,6 @@ WALKWAY {walkway_length}ft
 </text>
 </g>
 )}
-
 {/* Deck */}
 {include_deck && (
 <g>
@@ -89,7 +86,6 @@ WALKWAY {walkway_length}ft
 ))}
 </g>
 )}
-
 {/* Corner lot indicator */}
 {corner_lot && (
 <g>
@@ -98,7 +94,6 @@ WALKWAY {walkway_length}ft
 <text x="235" y="255" fontSize="10" fill="#374151">CORNER LOT - Additional street frontage</text>
 </g>
 )}
-
 {/* Measurements */}
 <g>
 <line x1="230" y1={100 + driveway_length * 1.5 + 10} x2="170" y2={100 + driveway_length * 1.5 + 10} stroke="#1E40AF" strokeWidth="1" markerStart="url(#arrowblue)" markerEnd="url(#arrowblue)"/>
@@ -106,21 +101,18 @@ WALKWAY {walkway_length}ft
 {garage_spaces * 9}' wide
 </text>
 </g>
-
 <defs>
 <marker id="arrowblue" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
 <polygon points="0,0 10,5 0,10" fill="#1E40AF"/>
 </marker>
 </defs>
 </svg>
-
 <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px'}}>
 <div style={{padding: '10px', background: '#DBEAFE', borderRadius: '8px'}}>
 <div style={{fontWeight: 'bold', color: '#1E40AF', marginBottom: '4px'}}>✅ Driveway</div>
 <div>{driveway_length} feet × {garage_spaces * 9} feet</div>
 <div style={{fontSize: '11px', color: '#3B82F6'}}>{driveway_length * garage_spaces * 9} sq ft</div>
 </div>
-
 {include_walkway && (
 <div style={{padding: '10px', background: '#DBEAFE', borderRadius: '8px'}}>
 <div style={{fontWeight: 'bold', color: '#1E40AF', marginBottom: '4px'}}>✅ Walkway</div>
@@ -128,7 +120,6 @@ WALKWAY {walkway_length}ft
 <div style={{fontSize: '11px', color: '#3B82F6'}}>{walkway_length * 4} sq ft</div>
 </div>
 )}
-
 {include_deck && (
 <div style={{padding: '10px', background: '#DBEAFE', borderRadius: '8px'}}>
 <div style={{fontWeight: 'bold', color: '#1E40AF', marginBottom: '4px'}}>✅ Deck</div>
@@ -136,7 +127,6 @@ WALKWAY {walkway_length}ft
 <div style={{fontSize: '11px', color: '#3B82F6'}}>192 sq ft</div>
 </div>
 )}
-
 <div style={{padding: '10px', background: '#FEE2E2', borderRadius: '8px'}}>
 <div style={{fontWeight: 'bold', color: '#991B1B', marginBottom: '4px'}}>❄️ Snow Depth</div>
 <div style={{fontSize: '16px'}}>{snow_depth} inches</div>
@@ -145,7 +135,6 @@ WALKWAY {walkway_length}ft
 </div>
 </div>
 </div>
-
 <div style={{marginTop: '12px', padding: '10px', background: '#F0FDF4', borderRadius: '8px', fontSize: '12px', color: '#166534'}}>
 <strong>Est. Time:</strong> {Math.round(((driveway_length * garage_spaces * 9) + (include_walkway ? walkway_length * 4 : 0) + (include_deck ? 192 : 0)) / 500 * 30)} minutes
 </div>
@@ -155,7 +144,6 @@ WALKWAY {walkway_length}ft
 
 const CleaningSchematic = ({ data }) => {
 const { sqft, bedrooms, bathrooms, stories, has_pets, cleaning_type } = data.scope;
-
 const rooms = [
 { name: 'Master Bedroom', x: 50, y: 40, w: 80, h: 60, color: '#DBEAFE' },
 { name: `Bedroom 2`, x: 140, y: 40, w: 60, h: 60, color: '#DBEAFE' },
@@ -166,19 +154,16 @@ const rooms = [
 { name: 'Bath 2', x: 50, y: 170, w: 60, h: 40, color: '#E0E7FF' },
 { name: 'Hallway', x: 120, y: 170, w: 100, h: 40, color: '#F3F4F6' }
 ];
-
 return (
 <div className="schematic-card" style={{borderColor: '#86EFAC', background: '#F0FDF4'}}>
 <div style={{fontSize: '14px', fontWeight: 'bold', color: '#059669', marginBottom: '16px', textAlign: 'center'}}>
 ✨ HOUSE CLEANING SCOPE - ROOM BY ROOM
 </div>
-
 <div style={{display: 'flex', gap: '16px', marginBottom: '16px'}}>
 <div style={{flex: 1}}>
 <svg viewBox="0 0 320 220" style={{width: '100%', height: 'auto'}}>
 {/* Floor plan */}
 <rect x="40" y="30" width="240" height="185" fill="#FAFAFA" stroke="black" strokeWidth="3"/>
-
 {rooms.slice(0, bedrooms + 3).map((room, i) => (
 <g key={i}>
 <rect x={room.x} y={room.y} width={room.w} height={room.h} fill={room.color} stroke="#374151" strokeWidth="1.5"/>
@@ -187,15 +172,13 @@ return (
 </text>
 </g>
 ))}
-
 {/* Pet indicator */}
 {has_pets && (
 <g>
 <circle cx="260" cy="200" r="8" fill="#F59E0B"/>
-<text x="260" y="204" textAnchor="middle" fontSize="12">🐾</text>
+<text x="260" y="204" textAnchor="middle" fontSize="12">🐕</text>
 </g>
 )}
-
 {/* Legend */}
 <g transform="translate(10, 10)">
 <text fontSize="11" fontWeight="bold" fill="#059669">{sqft.toLocaleString()} sq ft</text>
@@ -204,7 +187,6 @@ return (
 </g>
 </svg>
 </div>
-
 <div style={{flex: '0 0 140px'}}>
 <div style={{fontSize: '12px', fontWeight: 'bold', color: '#059669', marginBottom: '8px'}}>
 Cleaning Checklist:
@@ -218,7 +200,7 @@ Cleaning Checklist:
 'Vacuum all floors',
 'Dust surfaces',
 'Wipe counters',
-has_pets ? '🐾 Pet hair removal' : null
+has_pets ? '🐕 Pet hair removal' : null
 ].filter(Boolean).map((item, i) => (
 <div key={i} style={{fontSize: '11px', padding: '4px 0', borderBottom: '1px solid #BBF7D0'}}>
 ✓ {item}
@@ -226,7 +208,6 @@ has_pets ? '🐾 Pet hair removal' : null
 ))}
 </div>
 </div>
-
 <div style={{padding: '10px', background: '#DCFCE7', borderRadius: '8px', fontSize: '12px', color: '#166534'}}>
 <strong>Estimated Time:</strong> {Math.round(sqft / 700)}-{Math.round(sqft / 500)} hours
 {has_pets && <span> • <strong>+30 min</strong> for pet hair</span>}
@@ -237,22 +218,18 @@ has_pets ? '🐾 Pet hair removal' : null
 
 const DogWalkingRoute = ({ data }) => {
 const { duration, distance_km, start_location } = data.scope;
-
 return (
 <div className="schematic-card" style={{borderColor: '#FCD34D', background: '#FEF3C7'}}>
 <div style={{fontSize: '14px', fontWeight: 'bold', color: '#92400E', marginBottom: '16px', textAlign: 'center'}}>
 🐕 {duration} MINUTE WALKING ROUTE
 </div>
-
 <svg viewBox="0 0 300 250" style={{width: '100%', height: 'auto'}}>
 {/* Circular route */}
 <circle cx="150" cy="125" r="80" fill="none" stroke="#10B981" strokeWidth="4" strokeDasharray="8,4"/>
-
 {/* Start/End */}
 <circle cx="150" cy="45" r="12" fill="#22C55E" stroke="black" strokeWidth="2"/>
 <text x="150" y="30" textAnchor="middle" fontSize="12" fontWeight="bold">START/END</text>
 <text x="150" y="52" textAnchor="middle" fontSize="10" fill="white">🏠</text>
-
 {/* Waypoints */}
 {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => {
 const rad = (angle - 90) * Math.PI / 180;
@@ -265,18 +242,14 @@ return i > 0 && (
 </g>
 );
 })}
-
 {/* Park elements */}
 <circle cx="100" cy="100" r="20" fill="#22C55E" opacity="0.3"/>
 <text x="100" y="105" textAnchor="middle" fontSize="18">🌳</text>
-
 <circle cx="200" cy="150" r="20" fill="#22C55E" opacity="0.3"/>
-<text x="200" y="155" textAnchor="middle" fontSize="18">🌳</text>
-
+<text x="200" y="155" textAnchor="middle" fontSize="18">🌲</text>
 {/* Bench */}
 <rect x="140" y="185" width="20" height="8" fill="#8B4513"/>
 <text x="150" y="195" textAnchor="middle" fontSize="12">🪑</text>
-
 {/* Distance info */}
 <g transform="translate(150, 220)">
 <text textAnchor="middle" fontSize="12" fontWeight="bold" fill="#92400E">
@@ -287,10 +260,9 @@ Circular route • Returns to start
 </text>
 </g>
 </svg>
-
 <div style={{padding: '10px', background: '#FEF3C7', borderRadius: '8px', fontSize: '12px', marginTop: '12px'}}>
 <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '6px'}}>
-<span>🏞️ Park-friendly route</span>
+<span>🌳 Park-friendly route</span>
 <span>⏱️ {duration} min duration</span>
 </div>
 <div style={{color: '#78350F', fontSize: '11px'}}>
@@ -325,18 +297,40 @@ const PropertyConfirmation = ({ property, onConfirm, onEdit }) => (
 </div>
 );
 
-// ============ MAIN APP ============
+// ============ DEBUG PANEL ============
+const DebugPanel = ({ ctx }) => {
+const [isOpen, setIsOpen] = useState(false);
+return (
+<details className="debug-panel" open={isOpen} onToggle={(e) => setIsOpen(e.target.open)}>
+<summary>🐛 Debug Context (click to {isOpen ? 'hide' : 'show'})</summary>
+<div>
+<div><strong>Email:</strong> {ctx.customer_email || 'NOT SET'}</div>
+<div><strong>Phone:</strong> {ctx.customer_phone || 'NOT SET'}</div>
+<div><strong>Name:</strong> {ctx.customer_name || 'NOT SET'}</div>
+<div><strong>Service:</strong> {ctx.service_type || 'NOT SET'}</div>
+<div><strong>Property Verified:</strong> {ctx.property_verified ? 'YES' : 'NO'}</div>
+<div><strong>Ready for Matching:</strong> {ctx.ready_for_matching ? 'YES' : 'NO'}</div>
+<div style={{marginTop: '8px'}}><strong>Full Context:</strong></div>
+<pre>{JSON.stringify(ctx, null, 2)}</pre>
+</div>
+</details>
+);
+};
 
+// ============ MAIN APP ============
 const App = () => {
 const [userMode, setUserMode] = useState('customer');
 const [messages, setMessages] = useState([]);
 const [input, setInput] = useState("");
 const [isLoading, setIsLoading] = useState(false);
 const [ctx, setCtx] = useState({});
+const [conversationHistory, setConversationHistory] = useState([]);
 const messagesEndRef = useRef(null);
 
 useEffect(() => {
+// ✅ RESET context and history when switching modes
 setCtx({});
+setConversationHistory([]);
 const welcome = userMode === 'customer'
 ? "Hi! 👋 I'm your NeighborTask Concierge.\n\nI'll help you book a service with smart property analysis and weather-aware pricing.\n\nWhat service do you need today?"
 : "Welcome to NeighborTask Helper Onboarding!\n\nI'll help you create a professional profile to earn money helping neighbors.\n\nLet's start with your full name.";
@@ -351,11 +345,21 @@ const handleSend = async (textOverride = null) => {
 const text = textOverride || input;
 if (!text.trim()) return;
 
+// ✅ ADD: Add user message to messages display
 setMessages(prev => [...prev, { role: 'user', text }]);
 setInput("");
 setIsLoading(true);
 
+// ✅ ADD: Add to conversation history BEFORE sending
+const updatedHistory = [...conversationHistory, { role: 'user', text }];
+setConversationHistory(updatedHistory);
+
 try {
+console.log('=== SENDING TO BACKEND ===');
+console.log('Message:', text);
+console.log('Context:', ctx);
+console.log('History length:', updatedHistory.length);
+
 const response = await fetch(BACKEND_URL || 'mock', {
 method: 'POST',
 headers: { 'Content-Type': 'text/plain' },
@@ -363,11 +367,16 @@ body: JSON.stringify({
 action: 'chat',
 mode: userMode,
 message: text,
-context: ctx,
-history: messages
+context: ctx, // ✅ CRITICAL: Send current context
+history: updatedHistory // ✅ CRITICAL: Send history
 })
 }).then(r => r.json()).catch(() => mockResponse(text, userMode, ctx));
 
+console.log('=== BACKEND RESPONSE ===');
+console.log('Response:', response);
+console.log('New Context:', response.newContext);
+
+// ✅ ADD: Add AI response to messages
 setMessages(prev => [...prev, {
 role: 'ai',
 text: response.text,
@@ -376,8 +385,17 @@ property: response.property,
 weather: response.weather
 }]);
 
-if (response.newContext) setCtx(response.newContext);
+// ✅ CRITICAL: Update context with response from backend
+if (response.newContext) {
+console.log('Updating context to:', response.newContext);
+setCtx(response.newContext);
+}
+
+// ✅ ADD: Add AI response to history
+setConversationHistory(prev => [...prev, { role: 'assistant', text: response.text }]);
+
 } catch (err) {
+console.error('Error:', err);
 setMessages(prev => [...prev, { role: 'ai', text: "Error: " + err.message }]);
 } finally {
 setIsLoading(false);
@@ -386,19 +404,19 @@ setIsLoading(false);
 
 const mockResponse = (msg, mode, context) => {
 if (mode === 'helper') {
-if (!context.helper_name) return { text: "Thanks! What's your email and phone number?\n\n(Format: email, phone)" };
-if (!context.helper_email) return { text: "Perfect! What's your home address?\n\nThis helps us match you with nearby jobs." };
-return { text: "Great! How far are you willing to travel? (5, 10, or 15 miles)" };
+if (!context.helper_name) return { text: "Thanks! What's your email and phone number?\n\n(Format: email, phone)", newContext: {...context} };
+if (!context.helper_email) return { text: "Perfect! What's your home address?\n\nThis helps us match you with nearby jobs.", newContext: {...context} };
+return { text: "Great! How far are you willing to travel? (5, 10, or 15 miles)", newContext: {...context} };
 }
-
 const low = msg.toLowerCase();
 if (low.includes('snow')) {
 return {
 text: "I found your property at 123 Main St with an 80-foot 2-car driveway.\n\nIs this correct?",
-property: { address: '123 Main St', driveway_length_ft: 80, garage_spaces: 2 }
+property: { address: '123 Main St', driveway_length_ft: 80, garage_spaces: 2 },
+newContext: {...context, service_type: 'snow_removal'}
 };
 }
-return { text: "I can help with snow removal, cleaning, lawn care, and dog walking. What do you need?" };
+return { text: "I can help with snow removal, cleaning, lawn care, and dog walking. What do you need?", newContext: {...context} };
 };
 
 return (
@@ -416,13 +434,15 @@ return (
 </div>
 </div>
 
+{/* ✅ DEBUG PANEL */}
+<DebugPanel ctx={ctx} />
+
 <main style={{flex: 1, maxWidth: '48rem', width: '100%', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column'}}>
 <div style={{flex: 1, overflowY: 'auto', marginBottom: '16px'}}>
 {messages.map((msg, i) => (
 <div key={i} style={{display: 'flex', justifyContent: msg.role === 'ai' ? 'flex-start' : 'flex-end'}}>
 <div className={msg.role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user'}>
 <div style={{whiteSpace: 'pre-wrap', lineHeight: '1.5'}}>{msg.text}</div>
-
 {msg.property && !ctx.property_verified && (
 <PropertyConfirmation
 property={msg.property}
@@ -430,7 +450,6 @@ onConfirm={() => setCtx({...ctx, property_verified: true})}
 onEdit={() => setMessages(prev => [...prev, {role: 'ai', text: 'No problem! Please provide the correct address.'}])}
 />
 )}
-
 {msg.schematic?.type === 'snow_removal_schematic' && <SnowRemovalSchematic data={msg.schematic} />}
 {msg.schematic?.type === 'room_layout_schematic' && <CleaningSchematic data={msg.schematic} />}
 {msg.schematic?.type === 'walking_route_schematic' && <DogWalkingRoute data={msg.schematic} />}
@@ -448,7 +467,6 @@ onEdit={() => setMessages(prev => [...prev, {role: 'ai', text: 'No problem! Plea
 )}
 <div ref={messagesEndRef} />
 </div>
-
 <div className="card-nano" style={{padding: '8px', display: 'flex', gap: '8px'}}>
 <input
 value={input}
@@ -464,6 +482,12 @@ Send
 </main>
 </div>
 );
+};
+
+// ✅ Make debug function available in console
+window.debugContext = () => {
+console.log('=== DEBUG INFO ===');
+console.log('Check the debug panel in the UI for current context');
 };
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
