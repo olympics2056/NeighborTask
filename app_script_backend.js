@@ -168,6 +168,7 @@ function buildAssistantMessage(replyText, messages) {
   return msg;
 }
 
+
 /**
  * Call OpenAI Responses API with GPT-5.1
  */
@@ -177,30 +178,37 @@ function callOpenAIChat(messages, mode) {
 
   var systemPrompt = getSystemPromptForMode(mode);
 
-  // Build "messages" array for conversation object
-  var conversationMessages = [];
-  conversationMessages.push({ role: "system", content: systemPrompt });
+  // Build a simple text transcript from the messages array
+  var historyParts = [];
 
   messages.forEach(function (m) {
     if (!m || !m.role) return;
     var content = m.content || m.text || "";
     if (!content) return;
-    conversationMessages.push({ role: m.role, content: content });
+
+    var roleLabel;
+    if (m.role === "user")       roleLabel = "User";
+    else if (m.role === "assistant") roleLabel = "Assistant";
+    else if (m.role === "system")    roleLabel = "System";
+    else roleLabel = m.role;
+
+    historyParts.push(roleLabel + ": " + content);
   });
+
+  // Join all prior turns as one input string
+  var inputText = historyParts.join("\n\n");
+  if (!inputText) {
+    inputText = "User: (no previous messages, start a new NeighborTask conversation.)";
+  }
 
   var url = "https://api.openai.com/v1/responses";
 
   var body = {
-    model: MODEL_NAME,             // e.g., "gpt-5.1" or "gpt-5.1-mini"
+    model: MODEL_NAME,           // e.g. "gpt-5.1" or "gpt-5.1-mini"
+    instructions: systemPrompt,  // replaces "system" role
+    input: inputText,            // plain string input
     max_output_tokens: 500,
-    temperature: 0.4,
-
-    // NEW Responses API format
-    input: {
-      conversation: {
-        messages: conversationMessages
-      }
-    }
+    temperature: 0.4
   };
 
   var options = {
@@ -223,16 +231,17 @@ function callOpenAIChat(messages, mode) {
 
   var data = JSON.parse(text);
 
-  // Extract output text
+  // Responses API convenience field
   var reply =
-    data?.output_text ??
-    data?.output?.[0]?.content ??
+    (data && data.output_text) ||
+    (data && data.output && data.output[0] && data.output[0].content) ||
     null;
 
   if (!reply) throw new Error("Empty reply from OpenAI");
 
-  return reply.trim();
+  return String(reply).trim();
 }
+
 
 // =================================================
 // System prompt: NeighborTask brain
