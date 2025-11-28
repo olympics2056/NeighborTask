@@ -3,35 +3,344 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NeighborTask v5.0</title>
+<title>NeighborTask - Your Neighborhood Service Platform</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
-<script src="https://js.stripe.com/v3/"></script>
 <style>
 :root {
 --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
---banana-yellow: #FFE135; --nano-black: #1A1A1A; --paper-white: #FAFAFA;
+--banana-yellow: #FFE135;
+--nano-black: #1A1A1A;
+--paper-white: #FAFAFA;
+--blue: #3B82F6;
+--green: #10B981;
+--purple: #8B5CF6;
 }
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: var(--font-sans); background: var(--paper-white); color: var(--nano-black); }
-.btn-banana { background: var(--banana-yellow); color: var(--nano-black); border: 2px solid var(--nano-black); 
-box-shadow: 4px 4px 0 var(--nano-black); cursor: pointer; transition: all 0.1s; font-weight: 600; padding: 12px 24px; border-radius: 8px; }
+
+.btn-banana { 
+  background: var(--banana-yellow); 
+  color: var(--nano-black); 
+  border: 2px solid var(--nano-black); 
+  box-shadow: 4px 4px 0 var(--nano-black); 
+  cursor: pointer; 
+  transition: all 0.1s; 
+  font-weight: 600; 
+  padding: 12px 24px; 
+  border-radius: 8px; 
+}
 .btn-banana:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--nano-black); }
-.card-nano { background: white; border: 2px solid var(--nano-black); border-radius: 16px; box-shadow: 6px 6px 0 rgba(0,0,0,0.1); }
-.chat-bubble-ai { background: white; border: 2px solid var(--nano-black); border-radius: 16px 16px 16px 0; padding: 16px; margin-bottom: 16px; max-width: 85%; }
-.chat-bubble-user { background: var(--banana-yellow); border: 2px solid var(--nano-black); border-radius: 16px 16px 0 16px; padding: 16px; margin-bottom: 16px; max-width: 85%; }
-.loader-dot { width: 8px; height: 8px; background: #9CA3AF; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; display: inline-block; margin: 0 2px; }
+.btn-banana:hover { background: #FFD700; }
+.btn-small { padding: 8px 16px; font-size: 14px; }
+
+.card-nano { 
+  background: white; 
+  border: 2px solid var(--nano-black); 
+  border-radius: 16px; 
+  box-shadow: 6px 6px 0 rgba(0,0,0,0.1); 
+}
+
+.chat-bubble-ai { 
+  background: white; 
+  border: 2px solid var(--nano-black); 
+  border-radius: 16px 16px 16px 0; 
+  padding: 16px; 
+  margin-bottom: 16px; 
+  max-width: 85%; 
+}
+
+.chat-bubble-user { 
+  background: var(--banana-yellow); 
+  border: 2px solid var(--nano-black); 
+  border-radius: 16px 16px 0 16px; 
+  padding: 16px; 
+  margin-bottom: 16px; 
+  max-width: 85%; 
+}
+
+.loader-dot { 
+  width: 8px; 
+  height: 8px; 
+  background: #9CA3AF; 
+  border-radius: 50%; 
+  animation: bounce 1.4s infinite ease-in-out both; 
+  display: inline-block; 
+  margin: 0 2px; 
+}
 .loader-dot:nth-child(1) { animation-delay: -0.32s; }
 .loader-dot:nth-child(2) { animation-delay: -0.16s; }
-@keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-.schematic-card { margin: 16px 0; padding: 16px; border-radius: 12px; border: 2px solid; }
-.confirmation-box { margin: 12px 0; padding: 12px; background: #F0F9FF; border: 2px solid #3B82F6; border-radius: 8px; }
-.info-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; margin: 4px 4px 0 0; }
-.debug-panel { background: #fff3cd; border: 2px solid #ffc107; padding: 12px; margin: 12px; border-radius: 8px; font-family: monospace; font-size: 12px; }
-.debug-panel summary { cursor: pointer; font-weight: bold; color: #856404; margin-bottom: 8px; }
-.debug-panel pre { background: white; padding: 8px; border-radius: 4px; overflow-x: auto; margin-top: 8px; }
+
+@keyframes bounce { 
+  0%, 80%, 100% { transform: scale(0); } 
+  40% { transform: scale(1); } 
+}
+
+.schematic-card { 
+  margin: 16px 0; 
+  padding: 16px; 
+  border-radius: 12px; 
+  border: 2px solid; 
+}
+
+.confirmation-box { 
+  margin: 12px 0; 
+  padding: 12px; 
+  background: #F0F9FF; 
+  border: 2px solid #3B82F6; 
+  border-radius: 8px; 
+}
+
+.upload-area { 
+  border: 2px dashed var(--nano-black); 
+  border-radius: 8px; 
+  padding: 20px; 
+  text-align: center; 
+  cursor: pointer; 
+  margin: 12px 0; 
+  background: #f9f9f9; 
+}
+.upload-area:hover { background: #f0f0f0; }
+.upload-area input { display: none; }
+
+.job-id-badge { 
+  background: #10B981; 
+  color: white; 
+  padding: 8px 16px; 
+  border-radius: 8px; 
+  font-weight: bold; 
+  display: inline-block; 
+  margin: 8px 0; 
+}
+
+/* LANDING PAGE STYLES */
+.landing-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-section {
+  background: linear-gradient(135deg, var(--banana-yellow) 0%, #FFD700 100%);
+  padding: 60px 20px;
+  text-align: center;
+  border-bottom: 3px solid var(--nano-black);
+}
+
+.hero-title {
+  font-size: 48px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  color: var(--nano-black);
+}
+
+.hero-subtitle {
+  font-size: 20px;
+  margin-bottom: 32px;
+  color: #333;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  max-width: 1200px;
+  margin: 60px auto;
+  padding: 0 20px;
+}
+
+.service-card {
+  background: white;
+  border: 3px solid var(--nano-black);
+  border-radius: 16px;
+  padding: 32px 24px;
+  text-align: center;
+  transition: all 0.2s;
+  cursor: pointer;
+  box-shadow: 6px 6px 0 rgba(0,0,0,0.1);
+}
+
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 8px 8px 0 rgba(0,0,0,0.15);
+}
+
+.service-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.service-name {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--nano-black);
+}
+
+.service-description {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.service-price {
+  font-size: 16px;
+  font-weight: 600;
+  color: #10B981;
+}
+
+.how-it-works {
+  background: #F0F9FF;
+  padding: 60px 20px;
+  border-top: 3px solid var(--nano-black);
+  border-bottom: 3px solid var(--nano-black);
+}
+
+.section-title {
+  font-size: 36px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 48px;
+  color: var(--nano-black);
+}
+
+.steps-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 32px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.step-card {
+  background: white;
+  border: 2px solid var(--nano-black);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+.step-number {
+  width: 48px;
+  height: 48px;
+  background: var(--banana-yellow);
+  border: 2px solid var(--nano-black);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 auto 16px;
+}
+
+.step-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.step-description {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.community-section {
+  padding: 60px 20px;
+  background: white;
+}
+
+.community-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 24px;
+}
+
+.stat-number {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--blue);
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 16px;
+  color: #666;
+}
+
+.cta-section {
+  background: var(--nano-black);
+  color: white;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.cta-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.cta-subtitle {
+  font-size: 18px;
+  margin-bottom: 32px;
+  opacity: 0.9;
+}
+
+/* HELPER MODE STYLES */
+.helper-hero {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: white;
+}
+
+.helper-service-card {
+  border-color: #10B981;
+}
+
+.helper-service-card:hover {
+  border-color: #059669;
+}
+
+.earnings-highlight {
+  background: #D1FAE5;
+  border: 2px solid #10B981;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 32px auto;
+  max-width: 600px;
+  text-align: center;
+}
+
+.earnings-number {
+  font-size: 42px;
+  font-weight: 800;
+  color: #059669;
+  margin-bottom: 8px;
+}
+
+.earnings-label {
+  font-size: 16px;
+  color: #065F46;
+}
 </style>
 </head>
 <body>
@@ -39,455 +348,571 @@ box-shadow: 4px 4px 0 var(--nano-black); cursor: pointer; transition: all 0.1s; 
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
 
-// ⚠️ UPDATE THIS WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwESAzHEtVjad_ldprZpoFAuI8de_j8YqqkRn0CWS_68NzBRRvlNVaaTawwcORIdHIy/exec";
+const BACKEND_URL = "YOUR_BACKEND_URL_HERE";
 
-// ============ ENHANCED SCHEMATICS ============
-const SnowRemovalSchematic = ({ data }) => {
-const { driveway_length, garage_spaces, include_walkway, walkway_length, include_deck, snow_depth, corner_lot } = data.scope;
-return (
-<div className="schematic-card" style={{borderColor: '#93C5FD', background: '#EFF6FF'}}>
-<div style={{fontSize: '14px', fontWeight: 'bold', color: '#1E40AF', marginBottom: '16px', textAlign: 'center'}}>
-❄️ SNOW REMOVAL SCOPE - CONFIRMED AREAS
-</div>
-<svg viewBox="0 0 400 300" style={{width: '100%', height: 'auto', marginBottom: '16px'}}>
-{/* House */}
-<rect x="150" y="30" width="100" height="70" fill="#8B7355" stroke="black" strokeWidth="2"/>
-<polygon points="200,20 140,30 260,30" fill="#654321" stroke="black" strokeWidth="2"/>
-<text x="200" y="70" textAnchor="middle" fontSize="12" fontWeight="bold" fill="white">HOUSE</text>
-{/* Driveway */}
-<rect x="170" y="100" width="60" height={driveway_length * 1.5} fill="#D3D3D3" stroke="black" strokeWidth="3"/>
-<text x="200" y={100 + driveway_length * 0.75} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#1E40AF">
-{garage_spaces}-CAR DRIVEWAY
-</text>
-<text x="200" y={100 + driveway_length * 0.9} textAnchor="middle" fontSize="11" fill="#374151">
-{driveway_length} feet long
-</text>
-{/* Snow depth indicators */}
-{[...Array(8)].map((_, i) => (
-<circle key={`snow${i}`} cx={160 + i * 10} cy={110 + i * 12} r="4" fill="#B0E0E6" opacity="0.8"/>
-))}
-{/* Walkway */}
-{include_walkway && (
-<g>
-<rect x="120" y="100" width="40" height={walkway_length * 1.5} fill="#C0C0C0" stroke="black" strokeWidth="2" strokeDasharray="5,5"/>
-<text x="140" y={100 + walkway_length * 0.75} textAnchor="middle" fontSize="10" transform={`rotate(-90 140 ${100 + walkway_length * 0.75})`}>
-WALKWAY {walkway_length}ft
-</text>
-</g>
-)}
-{/* Deck */}
-{include_deck && (
-<g>
-<rect x="260" y="50" width="70" height="50" fill="#DEB887" stroke="black" strokeWidth="2"/>
-<text x="295" y="78" textAnchor="middle" fontSize="11" fontWeight="bold">DECK</text>
-{[...Array(5)].map((_, i) => (
-<line key={`deck${i}`} x1="265" y1={55 + i * 10} x2="325" y2={55 + i * 10} stroke="#8B7355" strokeWidth="1"/>
-))}
-</g>
-)}
-{/* Corner lot indicator */}
-{corner_lot && (
-<g>
-<line x1="120" y1="240" x2="350" y2="240" stroke="#374151" strokeWidth="2"/>
-<line x1="350" y1="100" x2="350" y2="240" stroke="#374151" strokeWidth="2"/>
-<text x="235" y="255" fontSize="10" fill="#374151">CORNER LOT - Additional street frontage</text>
-</g>
-)}
-{/* Measurements */}
-<g>
-<line x1="230" y1={100 + driveway_length * 1.5 + 10} x2="170" y2={100 + driveway_length * 1.5 + 10} stroke="#1E40AF" strokeWidth="1" markerStart="url(#arrowblue)" markerEnd="url(#arrowblue)"/>
-<text x="200" y={100 + driveway_length * 1.5 + 25} textAnchor="middle" fontSize="9" fill="#1E40AF">
-{garage_spaces * 9}' wide
-</text>
-</g>
-<defs>
-<marker id="arrowblue" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
-<polygon points="0,0 10,5 0,10" fill="#1E40AF"/>
-</marker>
-</defs>
-</svg>
-<div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px'}}>
-<div style={{padding: '10px', background: '#DBEAFE', borderRadius: '8px'}}>
-<div style={{fontWeight: 'bold', color: '#1E40AF', marginBottom: '4px'}}>✅ Driveway</div>
-<div>{driveway_length} feet × {garage_spaces * 9} feet</div>
-<div style={{fontSize: '11px', color: '#3B82F6'}}>{driveway_length * garage_spaces * 9} sq ft</div>
-</div>
-{include_walkway && (
-<div style={{padding: '10px', background: '#DBEAFE', borderRadius: '8px'}}>
-<div style={{fontWeight: 'bold', color: '#1E40AF', marginBottom: '4px'}}>✅ Walkway</div>
-<div>{walkway_length} feet × 4 feet</div>
-<div style={{fontSize: '11px', color: '#3B82F6'}}>{walkway_length * 4} sq ft</div>
-</div>
-)}
-{include_deck && (
-<div style={{padding: '10px', background: '#DBEAFE', borderRadius: '8px'}}>
-<div style={{fontWeight: 'bold', color: '#1E40AF', marginBottom: '4px'}}>✅ Deck</div>
-<div>12 feet × 16 feet</div>
-<div style={{fontSize: '11px', color: '#3B82F6'}}>192 sq ft</div>
-</div>
-)}
-<div style={{padding: '10px', background: '#FEE2E2', borderRadius: '8px'}}>
-<div style={{fontWeight: 'bold', color: '#991B1B', marginBottom: '4px'}}>❄️ Snow Depth</div>
-<div style={{fontSize: '16px'}}>{snow_depth} inches</div>
-<div style={{fontSize: '11px', color: '#DC2626'}}>
-{snow_depth <= 6 ? 'Light' : snow_depth <= 10 ? 'Moderate' : 'Heavy'} accumulation
-</div>
-</div>
-</div>
-<div style={{marginTop: '12px', padding: '10px', background: '#F0FDF4', borderRadius: '8px', fontSize: '12px', color: '#166534'}}>
-<strong>Est. Time:</strong> {Math.round(((driveway_length * garage_spaces * 9) + (include_walkway ? walkway_length * 4 : 0) + (include_deck ? 192 : 0)) / 500 * 30)} minutes
-</div>
-</div>
-);
-};
-
-const CleaningSchematic = ({ data }) => {
-const { sqft, bedrooms, bathrooms, stories, has_pets, cleaning_type } = data.scope;
-const rooms = [
-{ name: 'Master Bedroom', x: 50, y: 40, w: 80, h: 60, color: '#DBEAFE' },
-{ name: `Bedroom 2`, x: 140, y: 40, w: 60, h: 60, color: '#DBEAFE' },
-{ name: `Bedroom ${bedrooms}`, x: 210, y: 40, w: 60, h: 60, color: '#DBEAFE' },
-{ name: 'Kitchen', x: 50, y: 110, w: 70, h: 50, color: '#FEF3C7' },
-{ name: 'Living Room', x: 130, y: 110, w: 90, h: 50, color: '#F3E8FF' },
-{ name: 'Bath 1', x: 230, y: 110, w: 40, h: 50, color: '#E0E7FF' },
-{ name: 'Bath 2', x: 50, y: 170, w: 60, h: 40, color: '#E0E7FF' },
-{ name: 'Hallway', x: 120, y: 170, w: 100, h: 40, color: '#F3F4F6' }
+// ============ SERVICE DATA ============
+const SERVICES = [
+  {
+    id: 'snow_removal',
+    name: 'Snow Removal',
+    icon: '❄️',
+    description: 'Driveway, walkway, and deck snow clearing',
+    priceRange: '$50-100',
+    category: 'Outdoor'
+  },
+  {
+    id: 'lawn_care',
+    name: 'Lawn Care',
+    icon: '🌱',
+    description: 'Mowing, trimming, edging, and cleanup',
+    priceRange: '$40-80',
+    category: 'Outdoor'
+  },
+  {
+    id: 'house_cleaning',
+    name: 'House Cleaning',
+    icon: '✨',
+    description: 'Deep cleaning, regular maintenance',
+    priceRange: '$80-160',
+    category: 'Indoor'
+  },
+  {
+    id: 'dog_walking',
+    name: 'Dog Walking',
+    icon: '🐕',
+    description: 'Daily walks, pet sitting, play time',
+    priceRange: '$20-40',
+    category: 'Pets'
+  },
+  {
+    id: 'electrical',
+    name: 'Electrical Work',
+    icon: '⚡',
+    description: 'Licensed electrician services',
+    priceRange: '$100-200',
+    category: 'Professional'
+  },
+  {
+    id: 'plumbing',
+    name: 'Plumbing',
+    icon: '🔧',
+    description: 'Licensed plumber for repairs',
+    priceRange: '$100-200',
+    category: 'Professional'
+  },
+  {
+    id: 'holiday_lights',
+    name: 'Holiday Lights',
+    icon: '🎄',
+    description: 'Installation and removal',
+    priceRange: '$150-400',
+    category: 'Seasonal'
+  },
+  {
+    id: 'moving_help',
+    name: 'Moving Help',
+    icon: '📦',
+    description: 'Packing, loading, furniture moving',
+    priceRange: '$60-120',
+    category: 'Labor'
+  }
 ];
-return (
-<div className="schematic-card" style={{borderColor: '#86EFAC', background: '#F0FDF4'}}>
-<div style={{fontSize: '14px', fontWeight: 'bold', color: '#059669', marginBottom: '16px', textAlign: 'center'}}>
-✨ HOUSE CLEANING SCOPE - ROOM BY ROOM
-</div>
-<div style={{display: 'flex', gap: '16px', marginBottom: '16px'}}>
-<div style={{flex: 1}}>
-<svg viewBox="0 0 320 220" style={{width: '100%', height: 'auto'}}>
-{/* Floor plan */}
-<rect x="40" y="30" width="240" height="185" fill="#FAFAFA" stroke="black" strokeWidth="3"/>
-{rooms.slice(0, bedrooms + 3).map((room, i) => (
-<g key={i}>
-<rect x={room.x} y={room.y} width={room.w} height={room.h} fill={room.color} stroke="#374151" strokeWidth="1.5"/>
-<text x={room.x + room.w/2} y={room.y + room.h/2 + 4} textAnchor="middle" fontSize="10" fontWeight="500">
-{room.name}
-</text>
-</g>
-))}
-{/* Pet indicator */}
-{has_pets && (
-<g>
-<circle cx="260" cy="200" r="8" fill="#F59E0B"/>
-<text x="260" y="204" textAnchor="middle" fontSize="12">🐕</text>
-</g>
-)}
-{/* Legend */}
-<g transform="translate(10, 10)">
-<text fontSize="11" fontWeight="bold" fill="#059669">{sqft.toLocaleString()} sq ft</text>
-<text y="14" fontSize="9">{bedrooms} Bed • {bathrooms} Bath</text>
-<text y="26" fontSize="9" fill="#166534">{stories === 1 ? 'Single' : 'Multi'}-floor {cleaning_type}</text>
-</g>
-</svg>
-</div>
-<div style={{flex: '0 0 140px'}}>
-<div style={{fontSize: '12px', fontWeight: 'bold', color: '#059669', marginBottom: '8px'}}>
-Cleaning Checklist:
-</div>
-{[
-`${bedrooms} Bedrooms`,
-`${Math.floor(bathrooms)} Full Baths`,
-'Kitchen (full)',
-'Living areas',
-'Hallways',
-'Vacuum all floors',
-'Dust surfaces',
-'Wipe counters',
-has_pets ? '🐕 Pet hair removal' : null
-].filter(Boolean).map((item, i) => (
-<div key={i} style={{fontSize: '11px', padding: '4px 0', borderBottom: '1px solid #BBF7D0'}}>
-✓ {item}
-</div>
-))}
-</div>
-</div>
-<div style={{padding: '10px', background: '#DCFCE7', borderRadius: '8px', fontSize: '12px', color: '#166534'}}>
-<strong>Estimated Time:</strong> {Math.round(sqft / 700)}-{Math.round(sqft / 500)} hours
-{has_pets && <span> • <strong>+30 min</strong> for pet hair</span>}
-</div>
-</div>
-);
+
+// ============ LANDING PAGE COMPONENT ============
+const LandingPage = ({ onStartBooking, mode }) => {
+  const isHelper = mode === 'helper';
+  
+  const customerSteps = [
+    {
+      number: '1',
+      title: 'Tell Us What You Need',
+      description: 'Chat with our AI to describe your service needs',
+      icon: '💬'
+    },
+    {
+      number: '2',
+      title: 'Smart Property Analysis',
+      description: 'We analyze your property and provide accurate pricing',
+      icon: '🏠'
+    },
+    {
+      number: '3',
+      title: 'Get Matched Instantly',
+      description: 'Top-rated helpers nearby get notified within seconds',
+      icon: '⚡'
+    },
+    {
+      number: '4',
+      title: 'Job Done Right',
+      description: 'Track progress, pay securely, rate your helper',
+      icon: '✅'
+    }
+  ];
+  
+  const helperSteps = [
+    {
+      number: '1',
+      title: 'Create Your Profile',
+      description: 'Tell us about your skills, equipment, and availability',
+      icon: '👤'
+    },
+    {
+      number: '2',
+      title: 'Get Verified',
+      description: 'Upload equipment photos and certifications',
+      icon: '✓'
+    },
+    {
+      number: '3',
+      title: 'Receive Jobs',
+      description: 'Get SMS notifications for jobs in your area',
+      icon: '📱'
+    },
+    {
+      number: '4',
+      title: 'Earn Money',
+      description: 'Complete jobs, get paid, build your reputation',
+      icon: '💰'
+    }
+  ];
+  
+  const steps = isHelper ? helperSteps : customerSteps;
+  
+  return (
+    <div className="landing-page">
+      {/* Hero Section */}
+      <div className={isHelper ? 'hero-section helper-hero' : 'hero-section'}>
+        <div className="hero-title">
+          {isHelper ? '🔧 Earn Money Helping Neighbors' : '⚡ NeighborTask'}
+        </div>
+        <div className="hero-subtitle">
+          {isHelper 
+            ? 'Turn your skills into income. Set your own schedule.' 
+            : 'Your neighborhood service platform - Powered by AI'}
+        </div>
+        {isHelper && (
+          <div className="earnings-highlight">
+            <div className="earnings-number">$500-2,000/mo</div>
+            <div className="earnings-label">Average helper earnings (part-time)</div>
+          </div>
+        )}
+        <div className="hero-buttons">
+          <button className="btn-banana" style={{padding: '16px 32px', fontSize: '18px'}} onClick={() => onStartBooking()}>
+            {isHelper ? '🚀 Become a Helper' : '🎯 Book a Service'}
+          </button>
+        </div>
+      </div>
+
+      {/* Services Grid */}
+      <div style={{padding: '60px 20px', background: 'white'}}>
+        <div className="section-title">
+          {isHelper ? '📋 Services You Can Offer' : '🛠️ Our Services'}
+        </div>
+        <div className="service-grid">
+          {SERVICES.map(service => (
+            <div 
+              key={service.id} 
+              className={isHelper ? 'service-card helper-service-card' : 'service-card'}
+              onClick={() => onStartBooking(service.id)}
+            >
+              <span className="service-icon">{service.icon}</span>
+              <div className="service-name">{service.name}</div>
+              <div className="service-description">{service.description}</div>
+              <div className="service-price">
+                {isHelper ? `Earn ${service.priceRange}/job` : service.priceRange}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* How It Works */}
+      <div className="how-it-works">
+        <div className="section-title">
+          {isHelper ? '💼 How It Works for Helpers' : '🚀 How It Works'}
+        </div>
+        <div className="steps-container">
+          {steps.map((step, index) => (
+            <div key={index} className="step-card">
+              <div className="step-number">{step.number}</div>
+              <div style={{fontSize: '48px', marginBottom: '12px'}}>{step.icon}</div>
+              <div className="step-title">{step.title}</div>
+              <div className="step-description">{step.description}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Community Stats */}
+      <div className="community-section">
+        <div className="section-title">
+          {isHelper ? '📊 Join Our Growing Community' : '🌟 Trusted by Your Neighbors'}
+        </div>
+        <div className="community-stats">
+          <div className="stat-card">
+            <div className="stat-number">1,247</div>
+            <div className="stat-label">
+              {isHelper ? 'Active Helpers' : 'Happy Customers'}
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">3,892</div>
+            <div className="stat-label">Jobs Completed</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">4.9★</div>
+            <div className="stat-label">Average Rating</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">24hrs</div>
+            <div className="stat-label">Avg Response Time</div>
+          </div>
+        </div>
+        
+        {/* Community Illustration */}
+        <div style={{maxWidth: '800px', margin: '48px auto', textAlign: 'center'}}>
+          <svg viewBox="0 0 800 300" style={{width: '100%', height: 'auto'}}>
+            {/* Houses */}
+            <rect x="50" y="150" width="100" height="80" fill="#E5E7EB" stroke="#1f2937" strokeWidth="2"/>
+            <polygon points="100,150 40,150 100,100 160,150" fill="#8B7355" stroke="#1f2937" strokeWidth="2"/>
+            <rect x="250" y="140" width="120" height="90" fill="#E5E7EB" stroke="#1f2937" strokeWidth="2"/>
+            <polygon points="310,140 235,140 310,80 385,140" fill="#8B7355" stroke="#1f2937" strokeWidth="2"/>
+            <rect x="450" y="155" width="110" height="75" fill="#E5E7EB" stroke="#1f2937" strokeWidth="2"/>
+            <polygon points="505,155 440,155 505,105 570,155" fill="#8B7355" stroke="#1f2937" strokeWidth="2"/>
+            
+            {/* People helping */}
+            <circle cx="180" cy="200" r="15" fill="#FFE135"/>
+            <text x="180" y="207" textAnchor="middle" fontSize="20">🧹</text>
+            
+            <circle cx="400" cy="195" r="15" fill="#10B981"/>
+            <text x="400" y="202" textAnchor="middle" fontSize="20">⚡</text>
+            
+            <circle cx="590" cy="205" r="15" fill="#3B82F6"/>
+            <text x="590" y="212" textAnchor="middle" fontSize="20">🌱</text>
+            
+            {/* Connection lines */}
+            <line x1="100" y1="230" x2="180" y2="215" stroke="#FFE135" strokeWidth="3" strokeDasharray="5,5"/>
+            <line x1="310" y1="230" x2="400" y2="210" stroke="#10B981" strokeWidth="3" strokeDasharray="5,5"/>
+            <line x1="505" y1="230" x2="590" y2="220" stroke="#3B82F6" strokeWidth="3" strokeDasharray="5,5"/>
+            
+            {/* Label */}
+            <text x="400" y="270" textAnchor="middle" fontSize="18" fontWeight="bold" fill="#1f2937">
+              Connecting neighbors who need help with neighbors who can help
+            </text>
+          </svg>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="cta-section">
+        <div className="cta-title">
+          {isHelper ? 'Ready to Start Earning?' : 'Need Help Today?'}
+        </div>
+        <div className="cta-subtitle">
+          {isHelper 
+            ? 'Join hundreds of helpers earning extra income in your community' 
+            : 'Get matched with top-rated helpers in minutes'}
+        </div>
+        <button className="btn-banana" style={{padding: '16px 32px', fontSize: '18px'}} onClick={() => onStartBooking()}>
+          {isHelper ? 'Create Helper Profile' : 'Get Started Now'}
+        </button>
+      </div>
+    </div>
+  );
 };
 
-const DogWalkingRoute = ({ data }) => {
-const { duration, distance_km, start_location } = data.scope;
-return (
-<div className="schematic-card" style={{borderColor: '#FCD34D', background: '#FEF3C7'}}>
-<div style={{fontSize: '14px', fontWeight: 'bold', color: '#92400E', marginBottom: '16px', textAlign: 'center'}}>
-🐕 {duration} MINUTE WALKING ROUTE
-</div>
-<svg viewBox="0 0 300 250" style={{width: '100%', height: 'auto'}}>
-{/* Circular route */}
-<circle cx="150" cy="125" r="80" fill="none" stroke="#10B981" strokeWidth="4" strokeDasharray="8,4"/>
-{/* Start/End */}
-<circle cx="150" cy="45" r="12" fill="#22C55E" stroke="black" strokeWidth="2"/>
-<text x="150" y="30" textAnchor="middle" fontSize="12" fontWeight="bold">START/END</text>
-<text x="150" y="52" textAnchor="middle" fontSize="10" fill="white">🏠</text>
-{/* Waypoints */}
-{[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => {
-const rad = (angle - 90) * Math.PI / 180;
-const x = 150 + 80 * Math.cos(rad);
-const y = 125 + 80 * Math.sin(rad);
-return i > 0 && (
-<g key={i}>
-<circle cx={x} cy={y} r="6" fill="#F59E0B" stroke="black" strokeWidth="1"/>
-<text x={x} y={y - 10} textAnchor="middle" fontSize="9" fontWeight="bold">{i}</text>
-</g>
-);
-})}
-{/* Park elements */}
-<circle cx="100" cy="100" r="20" fill="#22C55E" opacity="0.3"/>
-<text x="100" y="105" textAnchor="middle" fontSize="18">🌳</text>
-<circle cx="200" cy="150" r="20" fill="#22C55E" opacity="0.3"/>
-<text x="200" y="155" textAnchor="middle" fontSize="18">🌲</text>
-{/* Bench */}
-<rect x="140" y="185" width="20" height="8" fill="#8B4513"/>
-<text x="150" y="195" textAnchor="middle" fontSize="12">🪑</text>
-{/* Distance info */}
-<g transform="translate(150, 220)">
-<text textAnchor="middle" fontSize="12" fontWeight="bold" fill="#92400E">
-{distance_km.toFixed(1)} km ({(distance_km * 0.621).toFixed(1)} mi)
-</text>
-<text y="15" textAnchor="middle" fontSize="10" fill="#78350F">
-Circular route • Returns to start
-</text>
-</g>
-</svg>
-<div style={{padding: '10px', background: '#FEF3C7', borderRadius: '8px', fontSize: '12px', marginTop: '12px'}}>
-<div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '6px'}}>
-<span>🌳 Park-friendly route</span>
-<span>⏱️ {duration} min duration</span>
-</div>
-<div style={{color: '#78350F', fontSize: '11px'}}>
-Route includes shade areas, grass patches, and rest stops
-</div>
-</div>
-</div>
-);
+// ============ EXISTING SCHEMATIC COMPONENTS (Shortened for brevity) ============
+const SnowRemovalSchematic = ({ data }) => {
+  const { driveway_length, garage_spaces, include_walkway, walkway_length, include_deck, snow_depth } = data.scope;
+  return (
+    <div className="schematic-card" style={{borderColor: '#93C5FD', background: '#EFF6FF'}}>
+      <div style={{fontSize: '14px', fontWeight: 'bold', color: '#1E40AF', marginBottom: '8px', textAlign: 'center'}}>
+        ❄️ SNOW REMOVAL SCOPE
+      </div>
+      <div style={{padding: '10px', background: '#DBEAFE', borderRadius: '8px', fontSize: '13px'}}>
+        <div>{garage_spaces}-car driveway ({driveway_length} ft)</div>
+        {include_walkway && <div>+ Walkway ({walkway_length} ft)</div>}
+        {include_deck && <div>+ Deck</div>}
+        <div>Snow depth: {snow_depth} inches</div>
+      </div>
+    </div>
+  );
 };
 
 const PropertyConfirmation = ({ property, onConfirm, onEdit }) => (
-<div className="confirmation-box">
-<div style={{fontSize: '13px', fontWeight: 'bold', color: '#1E40AF', marginBottom: '10px'}}>
-🏠 I found your property - Please confirm this is correct:
-</div>
-<div style={{fontSize: '13px', lineHeight: '1.6', marginBottom: '12px'}}>
-<strong>Address:</strong> {property.address}<br/>
-<strong>Type:</strong> {property.home_type} • {property.square_feet?.toLocaleString()} sq ft<br/>
-<strong>Layout:</strong> {property.bedrooms} bed / {property.bathrooms} bath • {property.stories} floor{property.stories > 1 ? 's' : ''}<br/>
-{property.driveway_length_ft && <><strong>Driveway:</strong> {property.driveway_length_ft} ft ({property.garage_spaces}-car garage)<br/></>}
-{property.lot_size_sqft && <><strong>Lot:</strong> {property.lot_size_sqft.toLocaleString()} sq ft<br/></>}
-{property.corner_lot && <span style={{color: '#DC2626'}}>• Corner lot</span>}
-</div>
-<div style={{display: 'flex', gap: '8px'}}>
-<button onClick={onConfirm} className="btn-banana" style={{flex: 1, padding: '8px'}}>
-✅ Yes, this is correct
-</button>
-<button onClick={onEdit} style={{flex: 1, padding: '8px', background: 'white', border: '2px solid #E5E7EB', borderRadius: '8px', cursor: 'pointer'}}>
-✏️ Edit address
-</button>
-</div>
-</div>
+  <div className="confirmation-box">
+    <div style={{fontSize: '13px', fontWeight: 'bold', color: '#1E40AF', marginBottom: '10px'}}>
+      🏠 Confirm: {property.address}
+    </div>
+    <div style={{fontSize: '12px', marginBottom: '12px'}}>
+      {property.bedrooms} bed / {property.bathrooms} bath • {property.square_feet} sq ft
+    </div>
+    <div style={{display: 'flex', gap: '8px'}}>
+      <button onClick={onConfirm} className="btn-banana btn-small" style={{flex: 1}}>✅ Correct</button>
+      <button onClick={onEdit} className="btn-small" style={{flex: 1, background: 'white', border: '2px solid #E5E7EB', borderRadius: '8px', cursor: 'pointer'}}>✏️ Edit</button>
+    </div>
+  </div>
 );
 
-// ============ DEBUG PANEL ============
-const DebugPanel = ({ ctx }) => {
-const [isOpen, setIsOpen] = useState(false);
-return (
-<details className="debug-panel" open={isOpen} onToggle={(e) => setIsOpen(e.target.open)}>
-<summary>🐛 Debug Context (click to {isOpen ? 'hide' : 'show'})</summary>
-<div>
-<div><strong>Email:</strong> {ctx.customer_email || 'NOT SET'}</div>
-<div><strong>Phone:</strong> {ctx.customer_phone || 'NOT SET'}</div>
-<div><strong>Name:</strong> {ctx.customer_name || 'NOT SET'}</div>
-<div><strong>Service:</strong> {ctx.service_type || 'NOT SET'}</div>
-<div><strong>Property Verified:</strong> {ctx.property_verified ? 'YES' : 'NO'}</div>
-<div><strong>Ready for Matching:</strong> {ctx.ready_for_matching ? 'YES' : 'NO'}</div>
-<div style={{marginTop: '8px'}}><strong>Full Context:</strong></div>
-<pre>{JSON.stringify(ctx, null, 2)}</pre>
-</div>
-</details>
-);
+const PhotoUpload = ({ onUpload, userId, userType, photoType, label }) => {
+  const fileInputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+    setUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64Data = event.target.result.split(',')[1];
+        const response = await fetch(BACKEND_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'upload_photo',
+            user_id: userId,
+            user_type: userType,
+            photo_type: photoType,
+            photo_data: base64Data,
+            file_name: file.name
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          onUpload(data.file_url);
+          alert('Photo uploaded!');
+        } else {
+          alert('Upload failed: ' + data.error);
+        }
+        setUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      alert('Error: ' + err.message);
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="upload-area" onClick={() => fileInputRef.current?.click()}>
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} />
+      {uploading ? <div>Uploading...</div> : (
+        <div>
+          <div style={{fontSize: '32px', marginBottom: '8px'}}>📸</div>
+          <div style={{fontWeight: 'bold'}}>{label || 'Upload photo'}</div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 // ============ MAIN APP ============
 const App = () => {
-const [userMode, setUserMode] = useState('customer');
-const [messages, setMessages] = useState([]);
-const [input, setInput] = useState("");
-const [isLoading, setIsLoading] = useState(false);
-const [ctx, setCtx] = useState({});
-const [conversationHistory, setConversationHistory] = useState([]);
-const messagesEndRef = useRef(null);
+  const [userMode, setUserMode] = useState('customer');
+  const [showLanding, setShowLanding] = useState(true);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [ctx, setCtx] = useState({});
+  const [conversationHistory, setConversationHistory] = useState([]);
+  const [shownSchematics, setShownSchematics] = useState(new Set());
+  const messagesEndRef = useRef(null);
 
-useEffect(() => {
-// ✅ RESET context and history when switching modes
-setCtx({});
-setConversationHistory([]);
-const welcome = userMode === 'customer'
-? "Hi! 👋 I'm your NeighborTask Concierge.\n\nI'll help you book a service with smart property analysis and weather-aware pricing.\n\nWhat service do you need today?"
-: "Welcome to NeighborTask Helper Onboarding!\n\nI'll help you create a professional profile to earn money helping neighbors.\n\nLet's start with your full name.";
-setMessages([{ role: 'ai', text: welcome }]);
-}, [userMode]);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-useEffect(() => {
-messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-}, [messages]);
+  const startBooking = (serviceId = null) => {
+    setShowLanding(false);
+    setCtx(serviceId ? {service_type: serviceId} : {});
+    setConversationHistory([]);
+    setShownSchematics(new Set());
+    
+    const welcome = userMode === 'customer'
+      ? (serviceId ? `Great! Let's book ${serviceId.replace('_', ' ')}. What's your address?` : "What service do you need?")
+      : "Let's set up your helper profile. What's your full name?";
+    
+    setMessages([{ role: 'ai', text: welcome }]);
+  };
 
-const handleSend = async (textOverride = null) => {
-const text = textOverride || input;
-if (!text.trim()) return;
+  const handleSend = async (textOverride = null) => {
+    const text = textOverride || input;
+    if (!text.trim()) return;
 
-// ✅ ADD: Add user message to messages display
-setMessages(prev => [...prev, { role: 'user', text }]);
-setInput("");
-setIsLoading(true);
+    setMessages(prev => [...prev, { role: 'user', text }]);
+    setInput("");
+    setIsLoading(true);
 
-// ✅ ADD: Add to conversation history BEFORE sending
-const updatedHistory = [...conversationHistory, { role: 'user', text }];
-setConversationHistory(updatedHistory);
+    const updatedHistory = [...conversationHistory, { role: 'user', text }];
+    setConversationHistory(updatedHistory);
 
-try {
-console.log('=== SENDING TO BACKEND ===');
-console.log('Message:', text);
-console.log('Context:', ctx);
-console.log('History length:', updatedHistory.length);
+    try {
+      const response = await fetch(BACKEND_URL || 'mock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'chat',
+          mode: userMode,
+          message: text,
+          context: ctx,
+          history: updatedHistory
+        })
+      }).then(r => r.json()).catch(() => mockResponse(text, userMode, ctx));
 
-const response = await fetch(BACKEND_URL || 'mock', {
-method: 'POST',
-headers: { 'Content-Type': 'text/plain' },
-body: JSON.stringify({
-action: 'chat',
-mode: userMode,
-message: text,
-context: ctx, // ✅ CRITICAL: Send current context
-history: updatedHistory // ✅ CRITICAL: Send history
-})
-}).then(r => r.json()).catch(() => mockResponse(text, userMode, ctx));
+      let shouldShowSchematic = false;
+      if (response.schematic_data) {
+        const schematicKey = response.schematic_data.type;
+        if (!shownSchematics.has(schematicKey)) {
+          shouldShowSchematic = true;
+          setShownSchematics(prev => new Set([...prev, schematicKey]));
+        }
+      }
 
-console.log('=== BACKEND RESPONSE ===');
-console.log('Response:', response);
-console.log('New Context:', response.newContext);
+      setMessages(prev => [...prev, {
+        role: 'ai',
+        text: response.text,
+        schematic: shouldShowSchematic ? response.schematic_data : null,
+        property: response.property,
+        job_id: response.job_id,
+        helper_id: response.helper_id
+      }]);
 
-// ✅ ADD: Add AI response to messages
-setMessages(prev => [...prev, {
-role: 'ai',
-text: response.text,
-schematic: response.schematic_data,
-property: response.property,
-weather: response.weather
-}]);
+      if (response.newContext) {
+        setCtx(response.newContext);
+      }
 
-// ✅ CRITICAL: Update context with response from backend
-if (response.newContext) {
-console.log('Updating context to:', response.newContext);
-setCtx(response.newContext);
-}
+      setConversationHistory(prev => [...prev, { role: 'assistant', text: response.text }]);
 
-// ✅ ADD: Add AI response to history
-setConversationHistory(prev => [...prev, { role: 'assistant', text: response.text }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'ai', text: "Error: " + err.message }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-} catch (err) {
-console.error('Error:', err);
-setMessages(prev => [...prev, { role: 'ai', text: "Error: " + err.message }]);
-} finally {
-setIsLoading(false);
-}
-};
+  const mockResponse = (msg, mode, context) => {
+    if (mode === 'helper') {
+      if (!context.helper_name) return { text: "What's your email and phone?", newContext: {...context} };
+      return { text: "What services can you provide?", newContext: {...context} };
+    }
+    const low = msg.toLowerCase();
+    if (low.includes('snow')) {
+      return {
+        text: "Found property at 123 Main St. Correct?",
+        property: { address: '123 Main St', driveway_length_ft: 80, garage_spaces: 2, square_feet: 2000, bedrooms: 3, bathrooms: 2, stories: 1 },
+        newContext: {...context, service_type: 'snow_removal'}
+      };
+    }
+    return { text: "What service do you need?", newContext: {...context} };
+  };
 
-const mockResponse = (msg, mode, context) => {
-if (mode === 'helper') {
-if (!context.helper_name) return { text: "Thanks! What's your email and phone number?\n\n(Format: email, phone)", newContext: {...context} };
-if (!context.helper_email) return { text: "Perfect! What's your home address?\n\nThis helps us match you with nearby jobs.", newContext: {...context} };
-return { text: "Great! How far are you willing to travel? (5, 10, or 15 miles)", newContext: {...context} };
-}
-const low = msg.toLowerCase();
-if (low.includes('snow')) {
-return {
-text: "I found your property at 123 Main St with an 80-foot 2-car driveway.\n\nIs this correct?",
-property: { address: '123 Main St', driveway_length_ft: 80, garage_spaces: 2 },
-newContext: {...context, service_type: 'snow_removal'}
-};
-}
-return { text: "I can help with snow removal, cleaning, lawn care, and dog walking. What do you need?", newContext: {...context} };
-};
+  const handlePhotoUpload = (fileUrl) => {
+    setCtx(prev => ({...prev, uploaded_photos: [...(prev.uploaded_photos || []), fileUrl]}));
+  };
 
-return (
-<div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--paper-white)'}}>
-<div style={{background: 'white', borderBottom: '2px solid var(--nano-black)', padding: '16px', position: 'sticky', top: 0, zIndex: 10}}>
-<div style={{maxWidth: '48rem', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-<div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-<div style={{width: '36px', height: '36px', background: 'var(--banana-yellow)', borderRadius: '8px', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold'}}>N</div>
-<span style={{fontSize: '20px', fontWeight: 'bold'}}>NeighborTask</span>
-<span style={{fontSize: '10px', background: '#3B82F6', color: 'white', padding: '3px 7px', borderRadius: '4px', fontWeight: 'bold'}}>v5.0</span>
-</div>
-<button onClick={() => setUserMode(m => m === 'customer' ? 'helper' : 'customer')} className="btn-banana" style={{padding: '8px 16px', fontSize: '14px'}}>
-{userMode === 'customer' ? '🔧 Helper Mode' : '👤 Customer Mode'}
-</button>
-</div>
-</div>
+  if (showLanding) {
+    return (
+      <div>
+        {/* Header */}
+        <div style={{background: 'white', borderBottom: '2px solid var(--nano-black)', padding: '16px', position: 'sticky', top: 0, zIndex: 10}}>
+          <div style={{maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <div style={{width: '36px', height: '36px', background: 'var(--banana-yellow)', borderRadius: '8px', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold'}}>N</div>
+              <span style={{fontSize: '20px', fontWeight: 'bold'}}>NeighborTask</span>
+            </div>
+            <button onClick={() => setUserMode(m => {
+              const newMode = m === 'customer' ? 'helper' : 'customer';
+              setShowLanding(true);
+              return newMode;
+            })} className="btn-banana btn-small">
+              {userMode === 'customer' ? '🔧 Become a Helper' : '👤 Find Services'}
+            </button>
+          </div>
+        </div>
+        
+        <LandingPage onStartBooking={startBooking} mode={userMode} />
+      </div>
+    );
+  }
 
-{/* ✅ DEBUG PANEL */}
-<DebugPanel ctx={ctx} />
+  // Chat Interface (existing code)
+  return (
+    <div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--paper-white)'}}>
+      <div style={{background: 'white', borderBottom: '2px solid var(--nano-black)', padding: '16px', position: 'sticky', top: 0, zIndex: 10}}>
+        <div style={{maxWidth: '48rem', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+            <div style={{width: '36px', height: '36px', background: 'var(--banana-yellow)', borderRadius: '8px', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold'}}>N</div>
+            <span style={{fontSize: '20px', fontWeight: 'bold'}}>NeighborTask</span>
+          </div>
+          <div style={{display: 'flex', gap: '8px'}}>
+            <button onClick={() => setShowLanding(true)} className="btn-banana btn-small">← Back</button>
+          </div>
+        </div>
+      </div>
 
-<main style={{flex: 1, maxWidth: '48rem', width: '100%', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column'}}>
-<div style={{flex: 1, overflowY: 'auto', marginBottom: '16px'}}>
-{messages.map((msg, i) => (
-<div key={i} style={{display: 'flex', justifyContent: msg.role === 'ai' ? 'flex-start' : 'flex-end'}}>
-<div className={msg.role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user'}>
-<div style={{whiteSpace: 'pre-wrap', lineHeight: '1.5'}}>{msg.text}</div>
-{msg.property && !ctx.property_verified && (
-<PropertyConfirmation
-property={msg.property}
-onConfirm={() => setCtx({...ctx, property_verified: true})}
-onEdit={() => setMessages(prev => [...prev, {role: 'ai', text: 'No problem! Please provide the correct address.'}])}
-/>
-)}
-{msg.schematic?.type === 'snow_removal_schematic' && <SnowRemovalSchematic data={msg.schematic} />}
-{msg.schematic?.type === 'room_layout_schematic' && <CleaningSchematic data={msg.schematic} />}
-{msg.schematic?.type === 'walking_route_schematic' && <DogWalkingRoute data={msg.schematic} />}
-</div>
-</div>
-))}
-{isLoading && (
-<div style={{display: 'flex'}}>
-<div className="chat-bubble-ai">
-<div className="loader-dot"></div>
-<div className="loader-dot"></div>
-<div className="loader-dot"></div>
-</div>
-</div>
-)}
-<div ref={messagesEndRef} />
-</div>
-<div className="card-nano" style={{padding: '8px', display: 'flex', gap: '8px'}}>
-<input
-value={input}
-onChange={e => setInput(e.target.value)}
-onKeyPress={e => e.key === 'Enter' && handleSend()}
-placeholder={userMode === 'customer' ? "Type your address and service..." : "Type your response..."}
-style={{flex: 1, padding: '14px', border: 'none', outline: 'none', fontSize: '15px', background: 'transparent'}}
-/>
-<button onClick={() => handleSend()} className="btn-banana" style={{padding: '12px 20px'}}>
-Send
-</button>
-</div>
-</main>
-</div>
-);
-};
+      <main style={{flex: 1, maxWidth: '48rem', width: '100%', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column'}}>
+        <div style={{flex: 1, overflowY: 'auto', marginBottom: '16px'}}>
+          {messages.map((msg, i) => (
+            <div key={i} style={{display: 'flex', justifyContent: msg.role === 'ai' ? 'flex-start' : 'flex-end'}}>
+              <div className={msg.role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user'}>
+                <div style={{whiteSpace: 'pre-wrap', lineHeight: '1.5'}}>{msg.text}</div>
+                {msg.job_id && <div className="job-id-badge">Job #{msg.job_id}</div>}
+                {msg.helper_id && <div className="job-id-badge">Helper #{msg.helper_id}</div>}
+                {msg.property && !ctx.property_verified && (
+                  <PropertyConfirmation
+                    property={msg.property}
+                    onConfirm={() => { setCtx({...ctx, property_verified: true}); handleSend("yes"); }}
+                    onEdit={() => setMessages(prev => [...prev, {role: 'ai', text: 'What is the correct address?'}])}
+                  />
+                )}
+                {msg.schematic?.type === 'snow_removal_schematic' && <SnowRemovalSchematic data={msg.schematic} />}
+              </div>
+            </div>
+          ))}
 
-// ✅ Make debug function available in console
-window.debugContext = () => {
-console.log('=== DEBUG INFO ===');
-console.log('Check the debug panel in the UI for current context');
+          {isLoading && (
+            <div style={{display: 'flex'}}>
+              <div className="chat-bubble-ai">
+                <div className="loader-dot"></div>
+                <div className="loader-dot"></div>
+                <div className="loader-dot"></div>
+              </div>
+            </div>
+          )}
+
+          {(ctx.ready_for_matching || ctx.helper_services) && (
+            <div style={{margin: '16px 0'}}>
+              <PhotoUpload
+                onUpload={handlePhotoUpload}
+                userId={ctx.job_id || ctx.helper_id || "temp_" + Date.now()}
+                userType={userMode}
+                photoType={userMode === 'helper' ? 'equipment' : 'property'}
+                label={userMode === 'helper' ? 'Upload Equipment Photo' : 'Upload Property Photo (optional)'}
+              />
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+
+        <div className="card-nano" style={{padding: '8px', display: 'flex', gap: '8px'}}>
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyPress={e => e.key === 'Enter' && handleSend()}
+            placeholder="Type your message..."
+            style={{flex: 1, padding: '14px', border: 'none', outline: 'none', fontSize: '15px', background: 'transparent'}}
+          />
+          <button onClick={() => handleSend()} className="btn-banana" style={{padding: '12px 20px'}}>Send</button>
+        </div>
+      </main>
+    </div>
+  );
 };
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
