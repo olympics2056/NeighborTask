@@ -3,289 +3,54 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NeighborTask Concierge</title>
-<!-- React & ReactDOM -->
+<title>NeighborTask Concierge v3.2</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<!-- Babel for JSX -->
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<!-- Lucide Icons -->
 <script src="https://unpkg.com/lucide@latest"></script>
-<!-- Leaflet CSS & JS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
-integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
-crossorigin="" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
-integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
-crossorigin=""></script>
-<!-- Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Stripe.js -->
+<script src="https://js.stripe.com/v3/"></script>
 <style>
-/* CSS Variables */
+/* Use system fonts - no external dependencies */
 :root {
+--font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+--font-display: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, sans-serif;
 --banana-yellow: #FFE135;
---banana-peel: #FFD700;
 --nano-black: #1A1A1A;
 --paper-white: #FAFAFA;
---gray-50: #F9FAFB;
---gray-100: #F3F4F6;
---gray-200: #E5E7EB;
---gray-300: #D1D5DB;
---gray-400: #9CA3AF;
---gray-500: #6B7280;
---gray-600: #4B5563;
---gray-700: #374151;
---gray-800: #1F2937;
---green-50: #F0FDF4;
---green-500: #22C55E;
---green-600: #059669;
---blue-50: #EFF6FF;
---blue-200: #BFDBFE;
---blue-500: #3B82F6;
 }
-
-/* Reset & Base */
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { 
-font-family: 'Inter', sans-serif; 
-background-color: var(--paper-white); 
-color: var(--nano-black);
-line-height: 1.5;
-}
-h1, h2, h3, .brand-font { font-family: 'Space Grotesk', sans-serif; }
-
-/* Utility Classes */
-.flex { display: flex; }
-.flex-col { flex-direction: column; }
-.items-center { align-items: center; }
-.justify-start { justify-content: flex-start; }
-.justify-end { justify-content: flex-end; }
-.justify-center { justify-content: center; }
-.justify-between { justify-content: space-between; }
-.justify-around { justify-content: space-around; }
-.gap-1 { gap: 0.25rem; }
-.gap-2 { gap: 0.5rem; }
-.w-full { width: 100%; }
-.w-2 { width: 0.5rem; }
-.w-8 { width: 2rem; }
-.w-10 { width: 2.5rem; }
-.w-12 { width: 3rem; }
-.h-2 { height: 0.5rem; }
-.h-8 { height: 2rem; }
-.h-10 { height: 2.5rem; }
-.h-12 { height: 3rem; }
-.h-auto { height: auto; }
-.max-w-3xl { max-width: 48rem; }
-.min-h-screen { min-height: 100vh; }
-.flex-1 { flex: 1; }
-.flex-shrink-0 { flex-shrink: 0; }
-.p-1 { padding: 0.25rem; }
-.p-2 { padding: 0.5rem; }
-.p-3 { padding: 0.75rem; }
-.p-4 { padding: 1rem; }
-.px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
-.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
-.px-4 { padding-left: 1rem; padding-right: 1rem; }
-.py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-.pr-2 { padding-right: 0.5rem; }
-.m-0 { margin: 0; }
-.mb-1 { margin-bottom: 0.25rem; }
-.mb-2 { margin-bottom: 0.5rem; }
-.mb-3 { margin-bottom: 0.75rem; }
-.mb-4 { margin-bottom: 1rem; }
-.mb-6 { margin-bottom: 1.5rem; }
-.mt-2 { margin-top: 0.5rem; }
-.mt-3 { margin-top: 0.75rem; }
-.mr-1 { margin-right: 0.25rem; }
-.my-3 { margin-top: 0.75rem; margin-bottom: 0.75rem; }
-.mx-auto { margin-left: auto; margin-right: auto; }
-.text-xs { font-size: 0.75rem; line-height: 1rem; }
-.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-.text-base { font-size: 1rem; line-height: 1.5rem; }
-.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
-.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
-.font-medium { font-weight: 500; }
-.font-bold { font-weight: 700; }
-.text-center { text-align: center; }
-.text-white { color: white; }
-.text-black { color: black; }
-.bg-white { background-color: white; }
-.bg-black { background-color: black; }
-.rounded { border-radius: 0.25rem; }
-.rounded-lg { border-radius: 0.5rem; }
-.rounded-xl { border-radius: 0.75rem; }
-.rounded-full { border-radius: 9999px; }
-.border { border-width: 1px; }
-.border-2 { border-width: 2px; }
-.border-black { border-color: black; }
-.border-dashed { border-style: dashed; }
-.cursor-pointer { cursor: pointer; }
-.uppercase { text-transform: uppercase; }
-.tracking-tight { letter-spacing: -0.025em; }
-.tracking-wide { letter-spacing: 0.025em; }
-.tracking-wider { letter-spacing: 0.05em; }
-.whitespace-nowrap { white-space: nowrap; }
-.whitespace-pre-wrap { white-space: pre-wrap; }
-.overflow-x-auto { overflow-x: auto; }
-.overflow-y-auto { overflow-y: auto; }
-.outline-none { outline: none; }
-.sticky { position: sticky; }
-.relative { position: relative; }
-.absolute { position: absolute; }
-.top-0 { top: 0; }
-.bottom-2 { bottom: 0.5rem; }
-.bottom-4 { bottom: 1rem; }
-.right-2 { right: 0.5rem; }
-.block { display: block; }
-.inline-block { inline-block; }
-.leading-relaxed { line-height: 1.625; }
-.z-10 { z-index: 10; }
-.shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
-.transition-all { transition: all 0.15s ease; }
-.transition-colors { transition: color 0.15s, background-color 0.15s; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* Color Classes */
-.bg-gray-50 { background-color: var(--gray-50); }
-.bg-gray-400 { background-color: var(--gray-400); }
-.bg-gray-800 { background-color: var(--gray-800); }
-.bg-green-50 { background-color: var(--green-50); }
-.bg-green-500 { background-color: var(--green-500); }
-.bg-blue-50 { background-color: var(--blue-50); }
-.text-gray-400 { color: var(--gray-400); }
-.text-gray-500 { color: var(--gray-500); }
-.text-green-600 { color: var(--green-600); }
-.text-blue-500 { color: var(--blue-500); }
-.border-gray-200 { border-color: var(--gray-200); }
-.border-gray-300 { border-color: var(--gray-300); }
-.border-blue-200 { border-color: var(--blue-200); }
-.border-green-300 { border-color: var(--green-300); }
-
-/* Custom Components */
-.btn-banana {
-background-color: var(--banana-yellow);
-color: var(--nano-black);
-border: 2px solid var(--nano-black);
-box-shadow: 4px 4px 0px var(--nano-black);
-transition: all 0.1s ease;
-cursor: pointer;
-}
-.btn-banana:hover { opacity: 0.9; }
-.btn-banana:active { 
-transform: translate(2px, 2px); 
-box-shadow: 2px 2px 0px var(--nano-black); 
-}
-
-.btn-black {
-background-color: black;
-color: white;
-border: 2px solid black;
-border-radius: 9999px;
-cursor: pointer;
-}
-.btn-black:hover { background-color: var(--gray-800); }
-
-.btn-yellow {
-background-color: var(--banana-yellow);
-color: black;
-border: 2px solid black;
-border-radius: 9999px;
-cursor: pointer;
-}
-.btn-yellow:hover { background-color: var(--banana-peel); }
-
-.card-nano {
-background: white;
-border: 2px solid var(--nano-black);
-border-radius: 16px;
-box-shadow: 6px 6px 0px rgba(0,0,0,0.1);
-}
-
-.chat-bubble-ai {
-background: white;
-border: 2px solid var(--nano-black);
-border-radius: 16px 16px 16px 0px;
-box-shadow: 2px 2px 0px rgba(0,0,0,0.05);
-}
-
-.chat-bubble-user {
-background: var(--banana-yellow);
-color: var(--nano-black);
-border: 2px solid var(--nano-black);
-border-radius: 16px 16px 0px 16px;
-box-shadow: 2px 2px 0px rgba(0,0,0,0.1);
-}
-
-.service-pill {
-display: flex;
-align-items: center;
-gap: 0.5rem;
-padding: 0.5rem 1rem;
-background: white;
-border: 2px solid var(--nano-black);
-border-radius: 9999px;
-white-space: nowrap;
-cursor: pointer;
-transition: background-color 0.15s;
-}
-.service-pill:hover { background-color: var(--banana-yellow); }
-
-.loader-dot {
-width: 0.5rem;
-height: 0.5rem;
-background-color: var(--gray-400);
-border-radius: 50%;
-animation: bounce 1.4s infinite ease-in-out both;
-}
+body { font-family: var(--font-sans); background: var(--paper-white); color: var(--nano-black); }
+.brand-font { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; }
+.btn-banana { background: var(--banana-yellow); color: var(--nano-black); border: 2px solid var(--nano-black); 
+box-shadow: 4px 4px 0 var(--nano-black); cursor: pointer; transition: all 0.1s; font-weight: 600; }
+.btn-banana:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--nano-black); }
+.btn-black { background: black; color: white; border: 2px solid black; padding: 12px 24px; 
+border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+.btn-black:hover { background: #333; }
+.card-nano { background: white; border: 2px solid var(--nano-black); border-radius: 16px; 
+box-shadow: 6px 6px 0 rgba(0,0,0,0.1); }
+.chat-bubble-ai { background: white; border: 2px solid var(--nano-black); border-radius: 16px 16px 16px 0; 
+box-shadow: 2px 2px 0 rgba(0,0,0,0.05); }
+.chat-bubble-user { background: var(--banana-yellow); border: 2px solid var(--nano-black); 
+border-radius: 16px 16px 0 16px; box-shadow: 2px 2px 0 rgba(0,0,0,0.1); }
+.loader-dot { width: 8px; height: 8px; background: #9CA3AF; border-radius: 50%; 
+animation: bounce 1.4s infinite ease-in-out both; }
 .loader-dot:nth-child(1) { animation-delay: -0.32s; }
 .loader-dot:nth-child(2) { animation-delay: -0.16s; }
-
-.map-container {
-height: 200px;
-width: 100%;
-border-radius: 12px;
-border: 2px solid var(--nano-black);
-margin-top: 12px;
-z-index: 1;
-}
-
-.visual-card {
-margin: 0.75rem 0;
-padding: 1rem;
-border-radius: 0.75rem;
-border: 2px dashed;
-}
-
-.input-field {
-flex: 1;
-padding: 0.75rem;
-outline: none;
-font-size: 1.125rem;
-background: transparent;
-border: none;
-}
-
-@keyframes bounce {
-0%, 80%, 100% { transform: scale(0); }
-40% { transform: scale(1); }
-}
-
-/* Max Width Constraints */
-.max-w-85 { max-width: 85%; }
-
-/* Responsive */
-@media (min-width: 768px) {
-.md\:text-base { font-size: 1rem; line-height: 1.5rem; }
-}
-
-/* Border Variants */
-.border-nano-black { border-color: var(--nano-black); }
-.border-b-2 { border-bottom-width: 2px; }
-
-/* Z-index */
-.z-500 { z-index: 500; }
+@keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+.payment-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5);
+display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.payment-card { background: white; border-radius: 16px; border: 2px solid var(--nano-black);
+padding: 32px; max-width: 500px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+.stripe-element { padding: 12px; border: 2px solid #E5E7EB; border-radius: 8px; margin: 12px 0; }
+.stripe-element:focus-within { border-color: var(--banana-yellow); }
+.badge { display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 11px; 
+font-weight: 600; margin: 4px 4px 0 0; }
+.badge-verified { background: #DBEAFE; color: #1E40AF; border: 1px solid #3B82F6; }
+.badge-bg-check { background: #DCFCE7; color: #166534; border: 1px solid #22C55E; }
 </style>
 </head>
 <body>
@@ -293,89 +58,199 @@ border: none;
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
 
-//=================================================================
-// ⚙ CONFIGURATION: CONNECT YOUR BACKEND HERE
-//=================================================================
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwESAzHEtVjad_ldprZpoFAuI8de_j8YqqkRn0CWS_68NzBRRvlNVaaTawwcORIdHIy/exec";
-//=================================================================
+// ============ CONFIG ============
+const BACKEND_URL = "YOUR_BACKEND_URL_HERE";
+const STRIPE_PUBLIC_KEY = "pk_test_YOUR_PUBLISHABLE_KEY"; // Replace with your Stripe publishable key
 
-// --- VISUAL COMPONENTS (SVG) ---
-const DrivewayVisual = () => (
-<div className="visual-card bg-gray-50 border-gray-300">
-<div className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide text-center">Inferred Property Layout</div>
-<svg viewBox="0 0 200 100" className="w-full h-auto">
-<rect x="60" y="10" width="80" height="40" fill="#eee" stroke="black" strokeWidth="2"/>
-<path d="M 80 50 L 80 90 L 120 90 L 120 50" fill="#ddd" stroke="black" strokeWidth="2" strokeDasharray="4 2"/>
-<text x="100" y="35" textAnchor="middle" fontSize="10" fontWeight="bold">Your Home</text>
-<text x="100" y="75" textAnchor="middle" fontSize="8">2-Car Driveway</text>
-<rect x="85" y="55" width="12" height="25" rx="2" fill="#FFE135" stroke="black"/>
-<rect x="103" y="55" width="12" height="25" rx="2" fill="#FFE135" stroke="black"/>
-</svg>
-</div>
-);
+// Initialize Stripe
+const stripe = window.Stripe ? window.Stripe(STRIPE_PUBLIC_KEY) : null;
 
-const LawnVisual = () => (
-<div className="visual-card bg-green-50 border-green-300">
-<div className="text-xs font-bold text-green-600 mb-2 uppercase tracking-wide text-center">Lot Size Estimation</div>
-<svg viewBox="0 0 200 100" className="w-full h-auto">
-<rect x="20" y="10" width="160" height="80" fill="#e6fffa" stroke="#059669" strokeWidth="2"/>
-<rect x="80" y="35" width="40" height="30" fill="white" stroke="black" strokeWidth="2"/>
-<text x="100" y="25" textAnchor="middle" fontSize="10" fill="#059669" fontWeight="bold">0.25 Acre Lot</text>
-<path d="M 30 20 L 35 15 M 40 80 L 45 75 M 150 30 L 155 25" stroke="#059669" strokeWidth="2"/>
-</svg>
-</div>
-);
+// ============ PAYMENT COMPONENT ============
+const PaymentModal = ({ amount, jobData, onSuccess, onCancel }) => {
+const [processing, setProcessing] = useState(false);
+const [error, setError] = useState(null);
+const cardElementRef = useRef(null);
 
-const RoomVisual = () => (
-<div className="visual-card bg-blue-50 border-blue-200">
-<div className="text-xs font-bold text-blue-500 mb-2 uppercase tracking-wide text-center">Standard Clean Scope</div>
-<div className="flex justify-around text-center text-xs mt-2">
-<div><div className="w-10 h-10 bg-white border-2 border-blue-200 rounded-lg flex items-center justify-center mb-1 mx-auto">🛏</div>3 Bed</div>
-<div><div className="w-10 h-10 bg-white border-2 border-blue-200 rounded-lg flex items-center justify-center mb-1 mx-auto">🛁</div>2 Bath</div>
-<div><div className="w-10 h-10 bg-white border-2 border-blue-200 rounded-lg flex items-center justify-center mb-1 mx-auto">🛋</div>Living</div>
-</div>
-</div>
-);
-
-const CommunityMap = ({ lat, lng, label }) => {
-const mapRef = useRef(null);
 useEffect(() => {
-if (!mapRef.current) return;
-const defaultLat = 41.7508;
-const defaultLng = -88.1535;
-const map = L.map(mapRef.current).setView([defaultLat, defaultLng], 13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
-attribution: '&copy; OpenStreetMap' 
-}).addTo(map);
-L.circle([defaultLat, defaultLng], { 
-color: '#FFE135', 
-fillColor: '#FFE135', 
-fillOpacity: 0.4, 
-radius: 1200 
-}).addTo(map);
-L.marker([defaultLat, defaultLng]).addTo(map).bindPopup(label || "Verified Zone").openPopup();
-return () => { map.remove(); };
+if (!stripe) return;
+
+const elements = stripe.elements();
+const cardElement = elements.create('card', {
+style: {
+base: {
+fontSize: '16px',
+color: '#1A1A1A',
+'::placeholder': { color: '#9CA3AF' }
+}
+}
+});
+
+cardElement.mount('#card-element');
+cardElementRef.current = { stripe, cardElement };
+
+return () => cardElement.destroy();
 }, []);
+
+const handleSubmit = async (e) => {
+e.preventDefault();
+if (!cardElementRef.current) return;
+
+setProcessing(true);
+setError(null);
+
+try {
+// 1. Create payment intent on backend
+const response = await fetch(BACKEND_URL, {
+method: 'POST',
+headers: { 'Content-Type': 'text/plain' },
+body: JSON.stringify({
+action: 'create_payment_intent',
+amount: amount * 100, // Convert to cents
+customer_email: jobData.email,
+job_id: jobData.jobId || 'pending'
+})
+});
+
+const data = await response.json();
+if (!data.success) throw new Error(data.error);
+
+// 2. Confirm payment with Stripe
+const { error: stripeError, paymentIntent } = await cardElementRef.current.stripe.confirmCardPayment(
+data.payment_intent.client_secret,
+{
+payment_method: {
+card: cardElementRef.current.cardElement,
+billing_details: {
+email: jobData.email,
+name: jobData.name
+}
+}
+}
+);
+
+if (stripeError) throw new Error(stripeError.message);
+
+// 3. Confirm with backend
+await fetch(BACKEND_URL, {
+method: 'POST',
+headers: { 'Content-Type': 'text/plain' },
+body: JSON.stringify({
+action: 'confirm_payment',
+payment_intent_id: paymentIntent.id,
+job_id: jobData.jobId
+})
+});
+
+onSuccess(paymentIntent);
+} catch (err) {
+setError(err.message);
+setProcessing(false);
+}
+};
+
 return (
-<div className="relative">
-<div ref={mapRef} className="map-container"></div>
-<div className="absolute bottom-2 right-2 bg-white px-2 py-1 rounded border border-black text-xs font-bold shadow-sm z-500">📍 12 Verified Neighbors</div>
+<div className="payment-modal">
+<div className="payment-card">
+<h2 style={{marginBottom: '16px', fontSize: '24px', fontWeight: 'bold'}}>
+🔒 Secure Payment
+</h2>
+<p style={{marginBottom: '24px', color: '#6B7280', fontSize: '14px'}}>
+Your card will be authorized for <strong>${amount.toFixed(2)}</strong> but not charged until the job is completed.
+</p>
+
+<form onSubmit={handleSubmit}>
+<div style={{marginBottom: '16px'}}>
+<label style={{display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px'}}>
+Card Information
+</label>
+<div id="card-element" className="stripe-element"></div>
+</div>
+
+{error && (
+<div style={{padding: '12px', background: '#FEE2E2', border: '1px solid #EF4444',
+borderRadius: '8px', marginBottom: '16px', color: '#991B1B', fontSize: '14px'}}>
+❌ {error}
+</div>
+)}
+
+<div style={{display: 'flex', gap: '12px'}}>
+<button type="button" onClick={onCancel} disabled={processing}
+style={{flex: 1, padding: '12px', border: '2px solid #E5E7EB', borderRadius: '8px',
+background: 'white', cursor: 'pointer', fontWeight: '600'}}>
+Cancel
+</button>
+<button type="submit" disabled={processing} className="btn-black" style={{flex: 1}}>
+{processing ? 'Processing...' : `Authorize $${amount.toFixed(2)}`}
+</button>
+</div>
+</form>
+
+<div style={{marginTop: '24px', padding: '12px', background: '#F3F4F6', borderRadius: '8px', fontSize: '12px', color: '#6B7280'}}>
+<div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
+<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+<path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+</svg>
+<strong>Payment Protection</strong>
+</div>
+<ul style={{paddingLeft: '20px', lineHeight: '1.6'}}>
+<li>Your card is authorized but NOT charged yet</li>
+<li>Payment only captured when job is completed</li>
+<li>Full refund if job is cancelled</li>
+<li>Secured by Stripe encryption</li>
+</ul>
+</div>
+</div>
 </div>
 );
 };
 
-// --- BACKEND HANDLER ---
+// ============ MAIN APP ============
+const App = () => {
+const [userMode, setUserMode] = useState('customer');
+const [messages, setMessages] = useState([]);
+const [input, setInput] = useState("");
+const [isLoading, setIsLoading] = useState(false);
+const [jobContext, setJobContext] = useState(null);
+const [showPayment, setShowPayment] = useState(false);
+const [pendingBooking, setPendingBooking] = useState(null);
+const messagesEndRef = useRef(null);
+
+useEffect(() => {
+setJobContext(null);
+setMessages([{
+role: 'ai',
+text: userMode === 'customer'
+? "Hi neighbor! 👋 I'm NeighborTask Concierge v3.2 with AI property intelligence and secure payment processing. What can I help you with today?"
+: "Ready to help neighbors? Let's set up your Helper profile and get you verified."
+}]);
+}, [userMode]);
+
+useEffect(() => {
+messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+}, [messages]);
+
+const handlePaymentSuccess = async (paymentIntent) => {
+setShowPayment(false);
+setMessages(prev => [...prev, {
+role: 'ai',
+text: `✅ Payment authorized successfully!\n\nYour booking is confirmed. Job ID: ${pendingBooking.jobId}\n\nWe're matching you with a verified helper now. You'll receive:\n📧 Email confirmation\n📱 Text updates when helper is assigned\n\nYour card will only be charged after the job is completed to your satisfaction.`
+}]);
+};
+
+const handleBookingConfirmation = (bookingData) => {
+setPendingBooking(bookingData);
+setShowPayment(true);
+};
+
 const callBackend = async (message, userMode, currentContext, history) => {
-if (!BACKEND_URL || BACKEND_URL.length < 10) {
-console.log("Using Mock AI (Backend URL missing)");
+if (!BACKEND_URL || BACKEND_URL === "YOUR_BACKEND_URL_HERE") {
 return mockCustomerAI(message, history, currentContext);
 }
 
 try {
 const response = await fetch(BACKEND_URL, {
 method: "POST",
-mode: "cors",
-headers: { "Content-Type": "text/plain;charset=utf-8" },
+headers: { "Content-Type": "text/plain" },
 body: JSON.stringify({
 action: "chat",
 mode: userMode,
@@ -385,88 +260,59 @@ history: history || []
 })
 });
 
-if (!response.ok) {
-throw new Error(`HTTP error! status: ${response.status}`);
-}
-
+if (!response.ok) throw new Error(`HTTP ${response.status}`);
 const data = await response.json();
+if (!data.success) throw new Error(data.error);
 
-if (!data.success) {
-throw new Error(data.error || "Backend returned success: false");
+// Check if booking is ready for payment
+if (data.ready_for_payment) {
+handleBookingConfirmation(data.booking_data);
 }
 
 return {
-text: data.text || data.reply || "No response from AI",
-link: data.link,
-map: data.map || false,
+text: data.text || "No response",
+property: data.property,
 visual: data.visual,
 newContext: data.newContext || currentContext
 };
 } catch (error) {
 console.error("Backend Error:", error);
-return {
-text: "⚠ Connection error. Please check your backend URL and try again.\n\nError: " + error.message
-};
+return { text: "⚠ Connection error: " + error.message };
 }
 };
 
-// --- MOCK FALLBACK ---
 const mockCustomerAI = async (msg, h, ctx) => {
 return new Promise(r => setTimeout(() => {
-let res = { text: "", map: false, visual: null, newContext: ctx || {} };
+let res = { text: "", visual: null, newContext: ctx || {} };
 const low = msg.toLowerCase();
 if (!ctx?.service) {
 if (low.includes("snow")) {
-res.text = "I found your address. 2-car driveway detected. When do you need snow cleared?";
-res.visual = "driveway"; 
-res.newContext = { service: "Snow", step: "time" };
-} else if (low.includes("clean")) {
-res.text = "I see your home info. Standard clean scope (3bd/2ba). When do you need this?";
-res.visual = "room"; 
-res.newContext = { service: "Clean", step: "time" };
-} else if (low.includes("lawn")) {
-res.text = "Got it! I see your property. Looks like a quarter acre. When do you need mowing?";
-res.visual = "lawn";
-res.newContext = { service: "Lawn", step: "time" };
+res.text = "I found your property - 2-car garage with an 80-foot driveway.\n\nHow much snow? (4-6\" / 6-10\" / 10+\")";
+res.visual = "driveway";
+res.newContext = { service: "Snow", step: "details" };
 } else {
-res.text = "I can help with Snow, Cleaning, Lawn, or Handyman. What do you need?";
+res.text = "I can help with Snow, Cleaning, Lawn, and more. What do you need?";
 }
-} else if (ctx.step === "time") {
-res.text = "Got it. Estimated price is $45-$75 for your area. Ready to book?";
+} else if (ctx.step === "details") {
+res.text = "Perfect! Based on your property:\n\n✓ 80-ft driveway on corner lot\n✓ Estimated 30-40 min job\n✓ Price: $65-85\n\nReady to book? (Type 'yes' to continue)";
 res.newContext.step = "confirm";
 } else if (ctx.step === "confirm") {
-res.text = "Dispatching a verified helper. Please authorize payment hold:";
-res.link = "#stripe"; 
-res.map = true;
+res.text = "Great! I'll need your contact info:\n\nPlease provide:\n• Name\n• Email\n• Phone number";
+res.newContext.step = "contact";
 } else {
-res.text = "Could you clarify your request?";
+res.text = "Thanks! Opening secure payment...";
+setTimeout(() => {
+handleBookingConfirmation({
+jobId: 'DEMO_' + Date.now(),
+amount: 75,
+name: 'Demo User',
+email: 'demo@example.com'
+});
+}, 1000);
 }
 r(res);
 }, 1000));
 };
-
-// --- APP COMPONENT ---
-const App = () => {
-const [userMode, setUserMode] = useState('customer');
-const [messages, setMessages] = useState([]);
-const [input, setInput] = useState("");
-const [isLoading, setIsLoading] = useState(false);
-const [jobContext, setJobContext] = useState(null);
-const messagesEndRef = useRef(null);
-
-useEffect(() => {
-setJobContext(null);
-setMessages([{
-role: 'ai',
-text: userMode === 'customer'
-? "Hi neighbor! 👋 I'm your Concierge. I can book snow removal, cleaning, handy-work, or tutoring. What can I get done for you?"
-: "Hi there! Ready to help your neighbors? Type 'Start' to create your Helper Profile."
-}]);
-}, [userMode]);
-
-useEffect(() => {
-messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-}, [messages]);
 
 const handleSend = async (textOverride = null) => {
 const text = textOverride || input;
@@ -483,88 +329,83 @@ const response = await callBackend(text, userMode, jobContext, outgoingHistory);
 setMessages(prev => [...prev, {
 role: 'ai',
 text: response.text,
-link: response.link,
-showMap: response.map,
-visual: response.visual
+visual: response.visual,
+property: response.property
 }]);
 if (response.newContext) setJobContext(response.newContext);
 } catch (error) {
-console.error(error);
-setMessages(prev => [...prev, { 
-role: 'ai', 
-text: "Connection glitch. Try again?" 
-}]);
+setMessages(prev => [...prev, { role: 'ai', text: "Error. Try again?" }]);
 } finally {
 setIsLoading(false);
 }
 };
 
 return (
-<div className="min-h-screen flex flex-col" style={{backgroundColor: 'var(--paper-white)'}}>
-{/* HEADER */}
-<div className="w-full bg-white border-b-2 border-nano-black p-4 sticky top-0 z-10">
-<div className="max-w-3xl mx-auto flex justify-between items-center">
-<div className="flex items-center gap-2 cursor-pointer" onClick={() => setUserMode('customer')}>
-<div className="w-8 h-8 rounded-lg border-2 border-black flex items-center justify-center font-bold text-xl" style={{backgroundColor: 'var(--banana-yellow)'}}>N</div>
-<span className="brand-font text-xl tracking-tight">NeighborTask</span>
+<div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--paper-white)'}}>
+{showPayment && (
+<PaymentModal
+amount={pendingBooking.amount}
+jobData={pendingBooking}
+onSuccess={handlePaymentSuccess}
+onCancel={() => setShowPayment(false)}
+/>
+)}
+
+<div style={{width: '100%', background: 'white', borderBottom: '2px solid var(--nano-black)',
+padding: '16px', position: 'sticky', top: 0, zIndex: 10}}>
+<div style={{maxWidth: '48rem', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+<div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+<div style={{width: '32px', height: '32px', background: 'var(--banana-yellow)', borderRadius: '8px',
+border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center',
+fontWeight: 'bold', fontSize: '20px'}}>N</div>
+<span className="brand-font" style={{fontSize: '20px'}}>NeighborTask</span>
+<span style={{fontSize: '10px', background: '#3B82F6', color: 'white', padding: '2px 6px',
+borderRadius: '4px', fontWeight: 'bold'}}>v3.2</span>
+<span style={{fontSize: '10px', background: '#22C55E', color: 'white', padding: '2px 6px',
+borderRadius: '4px', fontWeight: 'bold'}}>🔒 Secure</span>
 </div>
-<button
-onClick={() => setUserMode(userMode === 'customer' ? 'helper' : 'customer')}
-className={`px-3 py-1 text-sm font-bold transition-all ${userMode === 'customer' ? 'btn-black' : 'btn-yellow'}`}
->
-{userMode === 'customer' ? 'Switch to Helper Mode' : 'Back to Customer Mode'}
+<button onClick={() => setUserMode(userMode === 'customer' ? 'helper' : 'customer')}
+className="btn-banana" style={{padding: '6px 12px', fontSize: '14px', borderRadius: '20px'}}>
+{userMode === 'customer' ? 'Helper Mode' : 'Customer Mode'}
 </button>
 </div>
 </div>
 
-{/* MAIN CHAT */}
-<main className="flex-1 w-full max-w-3xl mx-auto p-4 flex flex-col">
-{/* Service Pills */}
+<main style={{flex: 1, width: '100%', maxWidth: '48rem', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column'}}>
 {userMode === 'customer' && messages.length < 3 && (
-<div className="mb-6">
-<p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Popular Services</p>
-<div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+<div style={{marginBottom: '24px'}}>
+<p style={{fontSize: '12px', fontWeight: 'bold', color: '#9CA3AF', textTransform: 'uppercase',
+letterSpacing: '0.05em', marginBottom: '12px'}}>Popular Services</p>
+<div style={{display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px'}}>
 {[
 {i:"❄️",l:"Snow Removal",t:"I need snow removal"},
 {i:"✨",l:"Cleaning",t:"I need house cleaning"},
-{i:"🔨",l:"Handyman",t:"I need a handyman"},
-{i:"🌸",l:"Lawn",t:"I need lawn mowing"}
+{i:"🌸",l:"Lawn Care",t:"I need lawn mowing"}
 ].map((s,i) => (
-<button key={i} onClick={() => handleSend(s.t)} className="service-pill">
-<span>{s.i}</span><span className="font-medium">{s.l}</span>
+<button key={i} onClick={() => handleSend(s.t)}
+style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
+background: 'white', border: '2px solid var(--nano-black)', borderRadius: '20px',
+cursor: 'pointer', whiteSpace: 'nowrap'}}>
+<span>{s.i}</span><span style={{fontWeight: 500}}>{s.l}</span>
 </button>
 ))}
 </div>
 </div>
 )}
 
-{/* Chat Area */}
-<div className="flex-1 overflow-y-auto mb-4 pr-2">
+<div style={{flex: 1, overflowY: 'auto', marginBottom: '16px', paddingRight: '8px'}}>
 {messages.map((msg, idx) => (
-<div key={idx} className={`flex w-full mb-4 ${msg.role === 'ai' ? 'justify-start' : 'justify-end'}`}>
-<div className={`max-w-85 p-4 ${msg.role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user'}`}>
-<p className="text-sm md:text-base leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-{msg.showMap && <CommunityMap label="Verified Neighborhood Zone" />}
-{msg.visual === 'driveway' && <DrivewayVisual />}
-{msg.visual === 'lawn' && <LawnVisual />}
-{msg.visual === 'room' && <RoomVisual />}
-{msg.link && (
-
-href={msg.link}
-target="_blank"
-rel="noreferrer"
-className="mt-3 block w-full text-center py-2 bg-black text-white font-bold rounded-lg"
-style={{textDecoration: 'none'}}
->
-Open Secure Link &rarr;
-</a>
-)}
+<div key={idx} style={{display: 'flex', width: '100%', marginBottom: '16px',
+justifyContent: msg.role === 'ai' ? 'flex-start' : 'flex-end'}}>
+<div className={msg.role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user'}
+style={{maxWidth: '85%', padding: '16px'}}>
+<p style={{fontSize: '14px', lineHeight: '1.625', whiteSpace: 'pre-wrap'}}>{msg.text}</p>
 </div>
 </div>
 ))}
 {isLoading && (
-<div className="flex justify-start w-full mb-4">
-<div className="chat-bubble-ai p-4 flex gap-1">
+<div style={{display: 'flex', justifyContent: 'flex-start', width: '100%', marginBottom: '16px'}}>
+<div className="chat-bubble-ai" style={{padding: '16px', display: 'flex', gap: '4px'}}>
 <div className="loader-dot"></div>
 <div className="loader-dot"></div>
 <div className="loader-dot"></div>
@@ -574,32 +415,30 @@ Open Secure Link &rarr;
 <div ref={messagesEndRef} />
 </div>
 
-{/* Input */}
-<div className="card-nano p-2 flex items-center gap-2 sticky bottom-4">
-<input
-type="text"
-value={input}
-onChange={(e) => setInput(e.target.value)}
+<div className="card-nano" style={{padding: '8px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+<input type="text" value={input} onChange={(e) => setInput(e.target.value)}
 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-placeholder={userMode === 'customer' ? "Type your address and task..." : "Type your answer..."}
-className="input-field"
+placeholder="Type your address and what you need..."
+style={{flex: 1, padding: '12px', outline: 'none', fontSize: '16px', background: 'transparent', border: 'none'}}
 />
-<button onClick={() => handleSend()} className="btn-banana w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0">
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+<button onClick={() => handleSend()} className="btn-banana"
+style={{width: '48px', height: '48px', borderRadius: '12px', display: 'flex',
+alignItems: 'center', justifyContent: 'center'}}>
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+<line x1="22" y1="2" x2="11" y2="13"></line>
+<polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+</svg>
 </button>
 </div>
-<p className="text-center text-xs text-gray-400 mt-2">
-<span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-Active in Naperville, IL • Verified Neighbors
+<p style={{textAlign: 'center', fontSize: '11px', color: '#9CA3AF', marginTop: '8px'}}>
+🔒 Powered by Stripe • Payments secured with bank-level encryption
 </p>
 </main>
 </div>
 );
 };
 
-lucide.createIcons();
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>
