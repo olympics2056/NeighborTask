@@ -165,81 +165,79 @@
 
             return context;
         };
+/**
+ * Call OpenAI Responses API with GPT-5.1
+ */
+function callOpenAIChat(messages, mode) {
+  var apiKey = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
+  if (!apiKey) throw new Error("Missing OPENAI_API_KEY");
 
-// --- REAL BACKEND HANDLER ---
-// Sends full messages[] + context to Apps Script backend
-// and is tolerant of different response shapes.
-const callBackend = async (messagesForAPI, userMode, currentContext) => {
-    // If BACKEND_URL missing: fall back to mock logic
-    if (!BACKEND_URL || BACKEND_URL.length < 10) {
-        console.log("Using Mock AI (Backend URL missing)");
-        const lastUser = [...messagesForAPI].slice().reverse().find(m => m.role === 'user');
-        const messageText = lastUser ? lastUser.content : "";
-        return userMode === 'customer'
-            ? mockCustomerAI(messageText, null, currentContext)
-            : mockHelperAI(messageText, null, currentContext);
-    }
+  var systemPrompt = getSystemPromptForMode(mode);
 
-    try {
-        const response = await fetch(BACKEND_URL, {
-            method: "POST",
-            // IMPORTANT: text/plain avoids CORS preflight with Apps Script
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({
-                action: "chat",
-                mode: userMode,
-                messages: messagesForAPI,
-                context: currentContext || {},
-                meta: {
-                    client_ts: Date.now(),
-                    ui_version: "v0.2"
-                }
-            })
-        });
+  // Build a simple text transcript from the messages array
+  var historyParts = [];
 
-        const raw = await response.text();
-        let data = null;
-        try {
-            data = JSON.parse(raw);
-        } catch (e) {
-            console.warn("Backend returned non-JSON:", raw);
-            return {
-                text: raw || "⚠️ Server returned an unreadable response.",
-                newContext: currentContext
-            };
-        }
+  messages.forEach(function (m) {
+    if (!m || !m.role) return;
+    var content = m.content || m.text || "";
+    if (!content) return;
 
-        console.log("Backend data:", data);
+    var roleLabel;
+    if (m.role === "user")       roleLabel = "User";
+    else if (m.role === "assistant") roleLabel = "Assistant";
+    else if (m.role === "system")    roleLabel = "System";
+    else roleLabel = m.role;
 
-        if (data && data.success === false) {
-            return {
-                text: data.error || "⚠️ Server error. Please try again.",
-                newContext: currentContext
-            };
-        }
+    historyParts.push(roleLabel + ": " + content);
+  });
 
-        // Try multiple shapes: {reply}, {text}, string
-        let replyText =
-            (data && typeof data.reply === "string" && data.reply) ||
-            (data && typeof data.text === "string" && data.text) ||
-            (typeof data === "string" && data) ||
-            "⚠️ No reply text returned from server.";
+  // Join all prior turns as one input string
+  var inputText = historyParts.join("\n\n");
+  if (!inputText) {
+    inputText = "User: (no previous messages, start a new NeighborTask conversation.)";
+  }
 
-        return {
-            text: replyText,
-            newContext: currentContext,
-            map: false,
-            visual: null,
-            link: null
-        };
-    } catch (error) {
-        console.error("Backend Error:", error);
-        return {
-            text: "⚠️ Connection error: " + (error?.message || String(error)),
-            newContext: currentContext
-        };
-    }
-};
+  var url = "https://api.openai.com/v1/responses";
+
+  var body = {
+    model: MODEL_NAME,           // e.g. "gpt-5.1" or "gpt-5.1-mini"
+    instructions: systemPrompt,  // replaces "system" role
+    input: inputText,            // plain string input
+    max_output_tokens: 500,
+    temperature: 0.4
+  };
+
+  var options = {
+    method: "post",
+    contentType: "application/json",
+    headers: {
+      Authorization: "Bearer " + apiKey
+    },
+    payload: JSON.stringify(body),
+    muteHttpExceptions: true
+  };
+
+  var response = UrlFetchApp.fetch(url, options);
+  var code = response.getResponseCode();
+  var text = response.getContentText();
+
+  if (code !== 200) {
+    throw new Error("OpenAI error " + code + ": " + text);
+  }
+
+  var data = JSON.parse(text);
+
+  // Responses API convenience field
+  var reply =
+    (data && data.output_text) ||
+    (data && data.output && data.output[0] && data.output[0].content) ||
+    null;
+
+  if (!reply) throw new Error("Empty reply from OpenAI");
+
+  return String(reply).trim();
+}
+
 
 
         // --- MOCK FALLBACKS (For Testing) ---
