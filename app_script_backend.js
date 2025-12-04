@@ -2223,7 +2223,38 @@ function callOpenAIChat(messages) {
   
   return data.choices[0].message.content.trim();
 }
-
+function testDatabaseConnection() {
+  var sheetId = "1yyD9xQD4_CAYiqW954nl8yinqRwQf82pTcA56vwefjo"; // Your ID
+  
+  try {
+    Logger.log("1. Attempting to open spreadsheet...");
+    var ss = SpreadsheetApp.openById(sheetId);
+    Logger.log("   - Success: Spreadsheet '" + ss.getName() + "' found.");
+    
+    Logger.log("2. Checking for 'Jobs' tab...");
+    var sheet = ss.getSheetByName("Jobs");
+    
+    if (!sheet) {
+      Logger.log("   - 'Jobs' tab not found. Creating it...");
+      sheet = ss.insertSheet("Jobs");
+      Logger.log("   - Success: 'Jobs' tab created.");
+    } else {
+      Logger.log("   - 'Jobs' tab exists.");
+    }
+    
+    Logger.log("3. Attempting to write a test row...");
+    sheet.appendRow(["TEST_ENTRY", "System Check", "Success", new Date()]);
+    Logger.log("   - Success: Row written.");
+    
+    Logger.log("✅ DATABASE CONNECTION IS PERFECT.");
+    
+  } catch (e) {
+    Logger.log("❌ FAILURE: " + e.toString());
+  }
+}
+function forceAuthorization() {
+  // This command forces Google to ask for Spreadsheet permissions
+  SpreadsheetApp.create("DELETE_ME_TEMP_SHEET");
 // =============== END OF FILE =================
 // Version 6.0 - COMPLETE Production Backend with Real APIs
 // Ready for deployment to Google Apps Script
