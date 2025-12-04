@@ -1931,6 +1931,12 @@ function needsCertification_(ctx) {
   
   return needsCert;
 }
+// =============== GET REQUEST HANDLER (Browser Check) =================
+
+function doGet(e) {
+  // This function runs when you visit the script URL in a browser
+  return ContentService.createTextOutput("✅ NeighborTask Backend v6.0 is ONLINE.\n\nSend POST requests to interact with the AI.");
+}
 
 function sendHelperWelcomeNotifications_(ctx) {
   var message = "🎉 Welcome to NeighborTask, " + ctx.helper_name + "!\n\n" +
