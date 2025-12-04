@@ -9,13 +9,13 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
 :root {
---font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
---banana-yellow: #FFE135;
---nano-black: #1A1A1A;
---paper-white: #FAFAFA;
---blue: #3B82F6;
---green: #10B981;
---purple: #8B5CF6;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --banana-yellow: #FFE135;
+  --nano-black: #1A1A1A;
+  --paper-white: #FAFAFA;
+  --blue: #3B82F6;
+  --green: #10B981;
+  --purple: #8B5CF6;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -621,7 +621,7 @@ const LandingPage = ({ onStartBooking, mode }) => {
   );
 };
 
-// ============ EXISTING SCHEMATIC COMPONENTS (Shortened for brevity) ============
+// ============ EXISTING SCHEMATIC COMPONENTS ============
 const SnowRemovalSchematic = ({ data }) => {
   const { driveway_length, garage_spaces, include_walkway, walkway_length, include_deck, snow_depth } = data.scope;
   return (
@@ -674,7 +674,7 @@ const PhotoUpload = ({ onUpload, userId, userType, photoType, label }) => {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
-            action: 'upload_photo',
+            action: 'upload_equipment_photo',
             user_id: userId,
             user_type: userType,
             photo_type: photoType,
@@ -723,6 +723,15 @@ const App = () => {
   const [shownSchematics, setShownSchematics] = useState(new Set());
   const messagesEndRef = useRef(null);
 
+  // --- MEMORY PERSISTENCE FIX ---
+  // Create a Reference to track context instantly
+  const ctxRef = useRef({});
+
+  // Keep ctxRef in sync with ctx state
+  useEffect(() => {
+    ctxRef.current = ctx;
+  }, [ctx]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -740,30 +749,40 @@ const App = () => {
     setMessages([{ role: 'ai', text: welcome }]);
   };
 
-  const handleSend = async (textOverride = null) => {
+  // --- CORRECTED HANDLE SEND FUNCTION ---
+  const handleSend = async (textOverride = null, tempContext = null) => {
     const text = textOverride || input;
     if (!text.trim()) return;
 
-    setMessages(prev => [...prev, { role: 'user', text }]);
+    // 1. Update UI immediately
+    const userMsg = { role: 'user', text };
+    setMessages(prev => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
 
-    const updatedHistory = [...conversationHistory, { role: 'user', text }];
+    // 2. Update History
+    const updatedHistory = [...conversationHistory, userMsg];
     setConversationHistory(updatedHistory);
 
+    // 3. DETERMINE THE CORRECT CONTEXT TO SEND
+    // If a button provided a tempContext (like "Correct"), use that. 
+    // Otherwise use the live Ref (for typing).
+    const contextToSend = tempContext || ctxRef.current;
+
     try {
-      const response = await fetch(BACKEND_URL || 'mock', {
+      const response = await fetch(BACKEND_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
           action: 'chat',
           mode: userMode,
           message: text,
-          context: ctx,
+          context: contextToSend, // <--- CRITICAL FIX: Sends the correct memory
           history: updatedHistory
         })
-      }).then(r => r.json()).catch(() => mockResponse(text, userMode, ctx));
+      }).then(r => r.json());
 
+      // 4. Handle Visuals (Schematics)
       let shouldShowSchematic = false;
       if (response.schematic_data) {
         const schematicKey = response.schematic_data.type;
@@ -773,6 +792,7 @@ const App = () => {
         }
       }
 
+      // 5. Update Messages with AI Response
       setMessages(prev => [...prev, {
         role: 'ai',
         text: response.text,
@@ -782,6 +802,7 @@ const App = () => {
         helper_id: response.helper_id
       }]);
 
+      // 6. Update Context (Memory) if backend sends updates
       if (response.newContext) {
         setCtx(response.newContext);
       }
@@ -789,7 +810,11 @@ const App = () => {
       setConversationHistory(prev => [...prev, { role: 'assistant', text: response.text }]);
 
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'ai', text: "Error: " + err.message }]);
+      console.error(err);
+      // Fallback for demo/offline testing
+      const mock = mockResponse(text, userMode, contextToSend);
+      setMessages(prev => [...prev, { role: 'ai', text: "Backend Error (Using Mock): " + mock.text }]);
+      if (mock.newContext) setCtx(mock.newContext);
     } finally {
       setIsLoading(false);
     }
@@ -840,7 +865,7 @@ const App = () => {
     );
   }
 
-  // Chat Interface (existing code)
+  // Chat Interface
   return (
     <div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--paper-white)'}}>
       <div style={{background: 'white', borderBottom: '2px solid var(--nano-black)', padding: '16px', position: 'sticky', top: 0, zIndex: 10}}>
@@ -863,13 +888,20 @@ const App = () => {
                 <div style={{whiteSpace: 'pre-wrap', lineHeight: '1.5'}}>{msg.text}</div>
                 {msg.job_id && <div className="job-id-badge">Job #{msg.job_id}</div>}
                 {msg.helper_id && <div className="job-id-badge">Helper #{msg.helper_id}</div>}
+                
+                {/* --- CORRECTED PROPERTY CONFIRMATION LOGIC --- */}
                 {msg.property && !ctx.property_verified && (
                   <PropertyConfirmation
                     property={msg.property}
-                    onConfirm={() => { setCtx({...ctx, property_verified: true}); handleSend("yes"); }}
+                    onConfirm={() => {
+                      const newCtx = {...ctx, property_verified: true}; 
+                      setCtx(newCtx); 
+                      handleSend("yes", newCtx); 
+                    }}
                     onEdit={() => setMessages(prev => [...prev, {role: 'ai', text: 'What is the correct address?'}])}
                   />
                 )}
+                
                 {msg.schematic?.type === 'snow_removal_schematic' && <SnowRemovalSchematic data={msg.schematic} />}
               </div>
             </div>
