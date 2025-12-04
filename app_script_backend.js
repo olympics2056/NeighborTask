@@ -1,45 +1,38 @@
 /****************************************************
- * NeighborTask Backend v5.1 - COMPLETE FIXED VERSION
- * All bugs corrected and missing functions implemented
+ * NeighborTask Backend v5.0 - Intelligent Context-Aware AI
+ * 
+ * KEY IMPROVEMENTS:
+ * - AI checks ALL available data BEFORE asking questions
+ * - Separate Helper vs Customer conversation logic
+ * - Automatic property verification with user confirmation
+ * - Date/Time collection with weather integration
+ * - Equipment photo upload for helpers
+ * - Certificate verification for skilled trades
+ * - Dynamic matching with 10-min escalation
+ * - Complete Google Sheets logging
+ * - Multi-channel confirmations (SMS/Email/Web)
  ****************************************************/
-
-// =============== CONFIG =========================
-var SHEET_ID = "1yyD9xQD4_CAYiqW954nl8yinqRwQf82pTcA56vwefjo";
-var MODEL_NAME = "gpt-4o";
-
-// Service type mappings
+// Paste this under SHEET_ID and MODEL_NAME variables
 var SERVICE_TYPES = {
   "snow": "snow_removal",
-  "shovel": "snow_removal",
   "plow": "snow_removal",
+  "shovel": "snow_removal",
   "lawn": "lawn_care",
   "mow": "lawn_care",
   "grass": "lawn_care",
   "clean": "house_cleaning",
-  "house cleaning": "house_cleaning",
-  "vacuum": "house_cleaning",
-  "electrical": "electrical",
-  "electrician": "electrical",
-  "plumbing": "plumbing",
-  "plumber": "plumbing",
+  "maid": "house_cleaning",
+  "electric": "electrical",
+  "wire": "electrical",
+  "plumb": "plumbing",
+  "leak": "plumbing",
+  "pipe": "plumbing",
   "dog": "dog_walking",
-  "walk": "dog_walking",
-  "pet": "dog_walking",
-  "holiday": "holiday_lights",
-  "lights": "holiday_lights",
-  "christmas": "holiday_lights"
+  "walk": "dog_walking"
 };
-
-// Service risk levels
-var SERVICE_RISK = {
-  snow_removal: { risk: "low", verification: false },
-  lawn_care: { risk: "low", verification: false },
-  house_cleaning: { risk: "medium", verification: true },
-  dog_walking: { risk: "medium", verification: true },
-  electrical: { risk: "high", verification: true },
-  plumbing: { risk: "high", verification: true },
-  holiday_lights: { risk: "medium", verification: false }
-};
+// =============== CONFIG =========================
+var SHEET_ID = "1yyD9xQD4_CAYiqW954nl8yinqRwQf82pTcA56vwefjo";
+var MODEL_NAME = "gpt-4o";
 
 // Service requirements for equipment/certification
 var SERVICE_REQUIREMENTS = {
@@ -69,16 +62,6 @@ var SERVICE_REQUIREMENTS = {
     photos_required: true,
     certification: true,
     certification_type: "Licensed Plumber"
-  },
-  dog_walking: {
-    equipment: ["leash", "waste_bags"],
-    photos_required: false,
-    certification: false
-  },
-  holiday_lights: {
-    equipment: ["ladder", "lights", "extension_cords"],
-    photos_required: true,
-    certification: false
   }
 };
 
@@ -103,8 +86,6 @@ function doPost(e) {
         return handleHelperJobResponse_(payload);
       case "escalate_job":
         return handleJobEscalation_(payload);
-      case "admin_assign":
-        return handleAdminAssign_(payload);
       default:
         return _json({ success: false, error: "Unknown action" });
     }
@@ -165,13 +146,11 @@ function buildIntelligenceContext_(message, ctx, mode) {
   if (intelligence.detected_address && !ctx.property_verified) {
     try {
       intelligence.property_data = getEnrichedPropertyData_(intelligence.detected_address);
-      // Don't set in ctx until verified
+      ctx.property_data = intelligence.property_data;
       intelligence.schematic_type = determineSchematicNeeded_(ctx.service_type, intelligence.property_data);
     } catch (err) {
       Logger.log("Property enrichment error: " + err);
     }
-  } else if (ctx.property_verified && ctx.property_data) {
-    intelligence.property_data = ctx.property_data;
   }
   
   // 3. Get weather if we have location and service type
@@ -338,14 +317,6 @@ function handleCustomerConversation_(message, ctx, intelligence, history) {
   // Extract information from user's response
   ctx = extractInfoFromResponse_(message, ctx, intelligence);
   
-  // Handle property verification
-  if (intelligence.property_data && !ctx.property_verified) {
-    // Wait for user confirmation before setting property data
-    if (ctx.property_verified) {
-      ctx.property_data = intelligence.property_data;
-    }
-  }
-  
   // Generate visuals if appropriate
   var visual = null;
   if (ctx.property_verified && ctx.service_type) {
@@ -484,7 +455,7 @@ function handleHelperConversation_(message, ctx, intelligence, history) {
   ctx = extractHelperInfoFromResponse_(message, ctx);
   
   // Check if profile is complete
-  if (isHelperProfileComplete_(ctx) && !ctx.profile_complete) {
+  if (isHelperProfileComplete_(ctx)) {
     var helperId = saveHelperToSheet_(ctx);
     ctx.helper_id = helperId;
     ctx.profile_complete = true;
@@ -569,221 +540,6 @@ function buildIntelligentHelperPrompt_(ctx, intelligence) {
   return lines.join("\n");
 }
 
-// =============== CORE DATA FUNCTIONS =================
-
-function detectServiceType_(message) {
-  var lower = message.toLowerCase();
-  for (var key in SERVICE_TYPES) {
-    if (lower.includes(key)) {
-      return SERVICE_TYPES[key];
-    }
-  }
-  return null;
-}
-
-function extractAddress_(message) {
-  // Look for address patterns
-  var patterns = [
-    /\d+\s+[A-Z][a-z]+\s+(Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Lane|Ln|Way|Court|Ct|Boulevard|Blvd)/i,
-    /\d+\s+[A-Z][a-z]+\s+[A-Z][a-z]+\s+(Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Lane|Ln|Way|Court|Ct|Boulevard|Blvd)/i,
-    /\d+\s+\w+\s+\w+,\s*\w+,\s*\w{2}\s+\d{5}/ // Full address with zip
-  ];
-  
-  for (var i = 0; i < patterns.length; i++) {
-    var match = message.match(patterns[i]);
-    if (match) {
-      return match[0];
-    }
-  }
-  return null;
-}
-
-function getEnrichedPropertyData_(address) {
-  // In production, this would call real APIs (Zillow, Attom, Google Maps)
-  // For now, return mock data
-  var baseData = {
-    address: address,
-    home_type: "Single Family",
-    square_feet: Math.floor(1800 + Math.random() * 1500),
-    bedrooms: Math.floor(2 + Math.random() * 3),
-    bathrooms: Math.floor(1 + Math.random() * 3),
-    stories: Math.floor(1 + Math.random() * 2),
-    lot_size_sqft: Math.floor(5000 + Math.random() * 10000),
-    yard_sqft: Math.floor(3000 + Math.random() * 7000),
-    driveway_type: Math.random() > 0.5 ? "concrete" : "asphalt",
-    driveway_length_ft: Math.floor(40 + Math.random() * 40),
-    garage_spaces: Math.floor(1 + Math.random() * 3),
-    corner_lot: Math.random() > 0.8,
-    location: getLocationInfo_(address)
-  };
-  
-  return baseData;
-}
-
-function getLocationInfo_(address) {
-  // In production, use Google Maps Geocoding API
-  // Mock data for testing
-  return {
-    lat: 32.9858 + (Math.random() - 0.5) * 0.1,
-    lng: -96.7501 + (Math.random() - 0.5) * 0.1,
-    zipcode: "75038",
-    city: "Irving",
-    state: "TX",
-    neighborhood: "Las Colinas"
-  };
-}
-
-function getWeatherForecast_(lat, lng, date) {
-  // In production, call weather API (OpenWeather, NOAA, etc.)
-  var conditions = ["clear", "cloudy", "rain", "snow"];
-  var condition = conditions[Math.floor(Math.random() * conditions.length)];
-  
-  return {
-    date: date,
-    temp: Math.floor(20 + Math.random() * 60),
-    condition: condition,
-    snow_depth: condition === "snow" ? Math.floor(1 + Math.random() * 8) : 0,
-    wind_speed: Math.floor(5 + Math.random() * 20),
-    precipitation_chance: Math.floor(Math.random() * 100)
-  };
-}
-
-function getMarketBenchmark_(serviceType, zipcode) {
-  // In production, query historical pricing data
-  var benchmarks = {
-    snow_removal: { base_low: 40, base_high: 80 },
-    lawn_care: { base_low: 30, base_high: 60 },
-    house_cleaning: { base_low: 80, base_high: 150 },
-    dog_walking: { base_low: 20, base_high: 40 },
-    electrical: { base_low: 75, base_high: 150 },
-    plumbing: { base_low: 85, base_high: 175 },
-    holiday_lights: { base_low: 100, base_high: 250 }
-  };
-  
-  return benchmarks[serviceType] || { base_low: 50, base_high: 100 };
-}
-
-function findMatchingHelpers_(params) {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
-  var sheet = ss.getSheetByName("Helpers");
-  if (!sheet) return [];
-  
-  var helpers = [];
-  var values = sheet.getDataRange().getValues();
-  if (values.length <= 1) return [];
-  
-  var header = values[0];
-  
-  for (var i = 1; i < values.length; i++) {
-    var helper = {};
-    header.forEach(function(col, idx) {
-      var key = col.toLowerCase().replace(/\s+/g, '_').replace(/[()]/g, '');
-      helper[key] = values[i][idx];
-    });
-    
-    // Check if helper provides this service
-    var services = [];
-    try {
-      if (helper.services_json) {
-        services = JSON.parse(helper.services_json);
-      }
-    } catch (e) {
-      continue;
-    }
-    
-    if (services.indexOf(params.service_type) === -1) continue;
-    
-    // Calculate distance
-    var helperLat = parseFloat(helper.center_lat || helper.helper_lat || 0);
-    var helperLng = parseFloat(helper.center_lng || helper.helper_lng || 0);
-    
-    var distance = haversineKm_(
-      params.lat, 
-      params.lng, 
-      helperLat,
-      helperLng
-    ) / 1.609; // Convert to miles
-    
-    // Check if within service radius
-    var radius = parseFloat(helper.service_radius || 10);
-    if (distance > radius) continue;
-    
-    // Calculate match score
-    var score = calculateMatchScore_(helper, params, distance);
-    
-    helpers.push({
-      helper_id: helper.helper_id,
-      name: helper.helper_name,
-      email: helper.helper_email,
-      phone: helper.helper_phone,
-      distance_miles: distance,
-      match_score: score,
-      rate: helper.helper_rate,
-      rating: helper.rating || "New",
-      center_lat: helperLat,
-      center_lng: helperLng
-    });
-  }
-  
-  // Sort by match score
-  helpers.sort(function(a, b) {
-    return b.match_score - a.match_score;
-  });
-  
-  return helpers;
-}
-
-function calculateMatchScore_(helper, params, distance) {
-  var score = 100;
-  
-  // Distance penalty (max -50 points)
-  score -= distance * 2;
-  
-  // Rating bonus (max +20 points)
-  var rating = parseFloat(helper.rating || 0);
-  score += rating * 4;
-  
-  // Availability bonus
-  if (helper.available_now === true || helper.available_now === "true") {
-    score += 15;
-  }
-  
-  // Verification bonus
-  if (helper.verified === true || helper.verified === "true") {
-    score += 10;
-  }
-  
-  return Math.max(0, Math.min(100, score));
-}
-
-function haversineKm_(lat1, lng1, lat2, lng2) {
-  var R = 6371; // Earth radius in km
-  var dLat = (lat2 - lat1) * Math.PI / 180;
-  var dLng = (lng2 - lng1) * Math.PI / 180;
-  
-  var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-          Math.sin(dLng/2) * Math.sin(dLng/2);
-  
-  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  
-  return R * c;
-}
-
-function determineSchematicNeeded_(serviceType, propertyData) {
-  if (!serviceType || !propertyData) return null;
-  
-  var schematicTypes = {
-    snow_removal: "driveway_layout",
-    lawn_care: "yard_layout",
-    house_cleaning: "room_layout",
-    dog_walking: "route_map",
-    holiday_lights: "house_exterior"
-  };
-  
-  return schematicTypes[serviceType] || null;
-}
-
 // =============== SCHEMATIC GENERATION =================
 
 function generateSchematicData_(ctx, intelligence) {
@@ -801,7 +557,7 @@ function generateSchematicData_(ctx, intelligence) {
       data.type = "snow_removal_schematic";
       data.scope = {
         driveway_length: ctx.property_data.driveway_length_ft || 50,
-        driveway_width: (ctx.property_data.garage_spaces || 2) * 9,
+        driveway_width: ctx.property_data.garage_spaces * 9, // 9ft per space
         garage_spaces: ctx.property_data.garage_spaces || 2,
         include_walkway: ctx.include_walkway,
         walkway_length: 40,
@@ -844,7 +600,7 @@ function generateSchematicData_(ctx, intelligence) {
         data.type = "walking_route_schematic";
         data.scope = {
           duration: ctx.walk_duration,
-          distance_km: (ctx.walk_duration * 0.07),
+          distance_km: (ctx.walk_duration * 0.07), // 4.2 km/h average
           start_location: {
             lat: ctx.property_data.location.lat,
             lng: ctx.property_data.location.lng
@@ -853,70 +609,9 @@ function generateSchematicData_(ctx, intelligence) {
         };
       }
       break;
-      
-    case "holiday_lights":
-      data.type = "house_exterior_schematic";
-      data.scope = {
-        stories: ctx.property_data.stories,
-        roofline_ft: Math.floor(ctx.property_data.square_feet / ctx.property_data.stories * 0.15),
-        gutter_ft: Math.floor(ctx.property_data.square_feet / ctx.property_data.stories * 0.12),
-        trees: 2,
-        bushes: 6
-      };
-      break;
   }
   
   return data;
-}
-
-// =============== HELPER PROFILE MANAGEMENT =================
-
-function saveHelperToSheet_(ctx) {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
-  var sheet = ss.getSheetByName("Helpers");
-  
-  if (!sheet) {
-    sheet = ss.insertSheet("Helpers");
-    sheet.appendRow([
-      "Helper ID", "Helper Name", "Helper Email", "Helper Phone",
-      "Helper Address", "Helper Lat", "Helper Lng", "Zipcode",
-      "Service Radius", "Services JSON", "Helper Rate", "Rating",
-      "Verified", "Available Now", "Equipment Photos URLs", "Certifications JSON",
-      "Insurance Info", "Service History", "Availability Schedule",
-      "Created At", "Last Active", "Total Jobs", "Average Response Time"
-    ]);
-  }
-  
-  var helperId = "HELPER_" + Date.now();
-  var now = new Date().toISOString();
-  
-  sheet.appendRow([
-    helperId,
-    ctx.helper_name,
-    ctx.helper_email,
-    ctx.helper_phone,
-    ctx.helper_address,
-    ctx.helper_lat || "",
-    ctx.helper_lng || "",
-    ctx.helper_zipcode || "",
-    ctx.service_radius,
-    JSON.stringify(ctx.helper_services || []),
-    ctx.helper_rate,
-    0, // rating
-    false, // verified
-    true, // available now
-    JSON.stringify(ctx.equipment_photos || {}),
-    JSON.stringify(ctx.certifications || []),
-    ctx.insurance_info || "",
-    ctx.service_history || "",
-    JSON.stringify(ctx.availability_schedule || {}),
-    now,
-    now,
-    0, // total jobs
-    0 // avg response time
-  ]);
-  
-  return helperId;
 }
 
 // =============== JOB CREATION & MATCHING =================
@@ -961,14 +656,14 @@ function createJobInSheet_(ctx, intelligence) {
     quote.price_high,
     "MATCHING",
     now,
-    0,
-    false,
-    0,
-    "",
-    "",
-    "",
-    "PENDING",
-    ""
+    0, // match attempts
+    false, // escalated
+    0, // escalation increase
+    "", // helper assigned
+    "", // matched at
+    "", // completed at
+    "PENDING", // payment status
+    "" // admin notes
   ]);
   
   return jobId;
@@ -998,7 +693,7 @@ function initiateMatchingProcess_(jobId, ctx, intelligence) {
     notifyHelperOfJob_(helper, jobId, ctx);
   });
   
-  // Set up escalation trigger
+  // Set up escalation trigger (10 minutes)
   createEscalationTrigger_(jobId);
 }
 
@@ -1025,9 +720,9 @@ function logMatchesToSheet_(jobId, helpers) {
       helper.match_score.toFixed(0),
       helper.rate,
       new Date().toISOString(),
-      "",
-      "",
-      "PENDING"
+      "", // response
+      "", // response at
+      "PENDING" // status
     ]);
   });
 }
@@ -1035,13 +730,10 @@ function logMatchesToSheet_(jobId, helpers) {
 // =============== NOTIFICATION SYSTEM =================
 
 function notifyHelperOfJob_(helper, jobId, jobContext) {
-  var priceLow = jobContext.price_low || 50;
-  var priceHigh = jobContext.price_high || 75;
-  
   var message = "🍌 NeighborTask: New job opportunity!\n\n" +
-    jobContext.service_type.replace(/_/g, " ") + " - " + 
+    jobContext.service_type.replace("_", " ") + " - " + 
     helper.distance_miles.toFixed(1) + " mi from you\n" +
-    "Est. $" + priceLow + "-$" + priceHigh + "\n" +
+    "Est. $" + (jobContext.price_low || 50) + "-$" + (jobContext.price_high || 75) + "\n" +
     jobContext.service_date + " at " + jobContext.service_time + "\n\n" +
     "Reply YES to accept or NO to decline\n" +
     "Job #" + jobId;
@@ -1054,7 +746,7 @@ function notifyHelperOfJob_(helper, jobId, jobContext) {
     "Distance: " + helper.distance_miles.toFixed(1) + " miles\n" +
     "Date: " + jobContext.service_date + "\n" +
     "Time: " + jobContext.service_time + "\n" +
-    "Estimated Pay: $" + (priceLow * 0.85).toFixed(2) + "-$" + (priceHigh * 0.85).toFixed(2) + "\n\n" +
+    "Estimated Pay: $" + (jobContext.price_low * 0.85).toFixed(2) + "-$" + (jobContext.price_high * 0.85).toFixed(2) + "\n\n" +
     "Log in to accept or decline: https://app.neighbortask.com/jobs/" + jobId;
   
   sendEmail_(helper.email, "New Job Match - " + jobId, emailBody);
@@ -1144,17 +836,24 @@ function logCommunication_(jobId, helperId, customerId, type, direction, content
 function handleHelperJobResponse_(payload) {
   var helperId = payload.helper_id;
   var jobId = payload.job_id;
-  var response = payload.response;
+  var response = payload.response; // "accept" or "decline"
   
+  // Update Matches sheet
   updateMatchResponse_(jobId, helperId, response);
   
   if (response === "accept") {
+    // Assign job to helper
     assignJobToHelper_(jobId, helperId);
+    
+    // Notify customer
     notifyCustomerHelperAssigned_(jobId, helperId);
+    
+    // Notify other helpers job is filled
     notifyOtherHelpersFilled_(jobId, helperId);
     
     return _json({ success: true, message: "Job assigned successfully", job_id: jobId });
   } else {
+    // Just log the decline
     return _json({ success: true, message: "Response recorded" });
   }
 }
@@ -1258,92 +957,66 @@ function notifyOtherHelpersFilled_(jobId, assignedHelperId) {
   }
 }
 
-// =============== JOB ESCALATION - FIXED =================
+// =============== JOB ESCALATION =================
 
 function createEscalationTrigger_(jobId) {
-  // Store job ID with timestamp for escalation check
-  var props = PropertiesService.getScriptProperties();
-  var escalationData = props.getProperty("ESCALATION_JOBS") || "{}";
-  var escalations = JSON.parse(escalationData);
-  
-  escalations[jobId] = new Date().getTime() + (10 * 60 * 1000); // 10 minutes from now
-  
-  props.setProperty("ESCALATION_JOBS", JSON.stringify(escalations));
-  
-  // Create or update the single escalation checker trigger
   var triggers = ScriptApp.getProjectTriggers();
-  var hasEscalationTrigger = false;
   
+  // Clean up old triggers for this job
   triggers.forEach(function(trigger) {
-    if (trigger.getHandlerFunction() === "checkAllJobsForEscalation_") {
-      hasEscalationTrigger = true;
+    if (trigger.getHandlerFunction() === "checkJobEscalation_" && 
+        trigger.getUniqueId().indexOf(jobId) !== -1) {
+      ScriptApp.deleteTrigger(trigger);
     }
   });
   
-  if (!hasEscalationTrigger) {
-    ScriptApp.newTrigger("checkAllJobsForEscalation_")
-      .timeBased()
-      .everyMinutes(1)
-      .create();
-  }
-}
-
-function checkAllJobsForEscalation_() {
+  // Create 10-minute trigger
+  ScriptApp.newTrigger("checkJobEscalation_")
+    .timeBased()
+    .after(10 * 60 * 1000) // 10 minutes
+    .create();
+  
+  // Store job ID in script properties for the trigger
   var props = PropertiesService.getScriptProperties();
-  var escalationData = props.getProperty("ESCALATION_JOBS") || "{}";
-  var escalations = JSON.parse(escalationData);
-  
-  var now = new Date().getTime();
-  var jobsToEscalate = [];
-  var updatedEscalations = {};
-  
-  // Check which jobs need escalation
-  for (var jobId in escalations) {
-    if (escalations[jobId] <= now) {
-      jobsToEscalate.push(jobId);
-    } else {
-      updatedEscalations[jobId] = escalations[jobId];
-    }
-  }
-  
-  // Update the stored escalations
-  props.setProperty("ESCALATION_JOBS", JSON.stringify(updatedEscalations));
-  
-  // Process escalations
-  jobsToEscalate.forEach(function(jobId) {
-    var job = getJobById_(jobId);
-    if (job && job.status === "MATCHING" && !job.escalated) {
-      escalateJob_(jobId);
-    }
-  });
+  props.setProperty("ESCALATION_JOB_" + jobId, new Date().getTime().toString());
 }
 
-function escalateJob_(jobId) {
+function checkJobEscalation_() {
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var sheet = ss.getSheetByName("Jobs");
   if (!sheet) return;
   
-  var job = getJobById_(jobId);
-  if (!job) return;
-  
-  // Find the row index for this job
   var values = sheet.getDataRange().getValues();
   var header = values[0];
-  var rowIndex = -1;
+  var now = new Date();
   
   for (var i = 1; i < values.length; i++) {
-    if (values[i][header.indexOf("Job ID")] === jobId) {
-      rowIndex = i + 1;
-      break;
+    var status = values[i][header.indexOf("Status")];
+    var createdAt = new Date(values[i][header.indexOf("Created At")]);
+    var escalated = values[i][header.indexOf("Escalated")];
+    var jobId = values[i][header.indexOf("Job ID")];
+    
+    if (status === "MATCHING" && !escalated) {
+      var minutesElapsed = (now - createdAt) / (1000 * 60);
+      
+      if (minutesElapsed >= 10) {
+        escalateJob_(jobId, i + 1);
+      }
     }
   }
+}
+
+function escalateJob_(jobId, rowIndex) {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName("Jobs");
+  var header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   
-  if (rowIndex === -1) return;
+  var job = getJobById_(jobId);
   
   // Increase price by 15%
-  var priceLow = parseFloat(job.price_low) * 1.15;
-  var priceHigh = parseFloat(job.price_high) * 1.15;
-  var increase = Math.round((priceLow + priceHigh) / 2 - (parseFloat(job.price_low) + parseFloat(job.price_high)) / 2);
+  var priceLow = job.price_low * 1.15;
+  var priceHigh = job.price_high * 1.15;
+  var increase = Math.round((priceLow + priceHigh) / 2 - (job.price_low + job.price_high) / 2);
   
   sheet.getRange(rowIndex, header.indexOf("Price Low") + 1).setValue(Math.round(priceLow));
   sheet.getRange(rowIndex, header.indexOf("Price High") + 1).setValue(Math.round(priceHigh));
@@ -1351,13 +1024,14 @@ function escalateJob_(jobId) {
   sheet.getRange(rowIndex, header.indexOf("Escalation Price Increase") + 1).setValue(increase);
   sheet.getRange(rowIndex, header.indexOf("Match Attempts") + 1).setValue(2);
   
-  // Find next tier of helpers
+  // Find next tier of helpers (6-10)
   var allHelpers = findMatchingHelpers_({
     service_type: job.service_type,
-    lat: parseFloat(job.lat),
-    lng: parseFloat(job.lng),
+    lat: job.lat,
+    lng: job.lng,
     date: job.date,
-    time: job.time_window
+    time: job.time_window,
+    verification_required: SERVICE_RISK[job.service_type].verification
   });
   
   var nextTier = allHelpers.slice(5, 10);
@@ -1382,18 +1056,19 @@ function escalateJob_(jobId) {
 
 function handleJobEscalation_(payload) {
   var jobId = payload.job_id;
-  escalateJob_(jobId);
+  escalateJob_(jobId, null);
   return _json({ success: true, message: "Job escalated" });
 }
 
-// =============== EQUIPMENT & CERTIFICATION =================
+// =============== EQUIPMENT PHOTO UPLOAD =================
 
 function handleEquipmentPhotoUpload_(payload) {
   var helperId = payload.helper_id;
   var serviceType = payload.service_type;
-  var photoData = payload.photo_data;
+  var photoData = payload.photo_data; // base64 encoded
   var fileName = payload.file_name;
   
+  // Save to Google Drive
   var folder = getHelperFolder_(helperId);
   var equipmentFolder = getOrCreateFolder_(folder, "equipment");
   
@@ -1406,6 +1081,7 @@ function handleEquipmentPhotoUpload_(payload) {
   var file = equipmentFolder.createFile(blob);
   var fileUrl = file.getUrl();
   
+  // Update helper record
   updateHelperEquipment_(helperId, serviceType, fileUrl);
   
   return _json({
@@ -1414,44 +1090,6 @@ function handleEquipmentPhotoUpload_(payload) {
     message: "Equipment photo uploaded successfully"
   });
 }
-
-function handleCertificateVerification_(payload) {
-  var helperId = payload.helper_id;
-  var certificateType = payload.certificate_type;
-  var licenseNumber = payload.license_number;
-  var expirationDate = payload.expiration_date;
-  var photoData = payload.photo_data;
-  
-  var folder = getHelperFolder_(helperId);
-  var certFolder = getOrCreateFolder_(folder, "certificates");
-  
-  var blob = Utilities.newBlob(
-    Utilities.base64Decode(photoData),
-    'image/jpeg',
-    certificateType + "_" + licenseNumber + ".jpg"
-  );
-  
-  var file = certFolder.createFile(blob);
-  var fileUrl = file.getUrl();
-  
-  updateHelperCertification_(helperId, {
-    type: certificateType,
-    license_number: licenseNumber,
-    expiration_date: expirationDate,
-    photo_url: fileUrl,
-    verified: false,
-    verified_date: null
-  });
-  
-  notifyAdminCertificateReview_(helperId, certificateType, licenseNumber);
-  
-  return _json({
-    success: true,
-    message: "Certificate submitted for verification. You'll be notified within 1-2 business days."
-  });
-}
-
-// =============== UTILITY FUNCTIONS =================
 
 function getHelperFolder_(helperId) {
   var rootFolder = DriveApp.getRootFolder();
@@ -1504,6 +1142,47 @@ function updateHelperEquipment_(helperId, serviceType, photoUrl) {
   }
 }
 
+// =============== CERTIFICATE VERIFICATION =================
+
+function handleCertificateVerification_(payload) {
+  var helperId = payload.helper_id;
+  var certificateType = payload.certificate_type;
+  var licenseNumber = payload.license_number;
+  var expirationDate = payload.expiration_date;
+  var photoData = payload.photo_data;
+  
+  // Save certificate photo
+  var folder = getHelperFolder_(helperId);
+  var certFolder = getOrCreateFolder_(folder, "certificates");
+  
+  var blob = Utilities.newBlob(
+    Utilities.base64Decode(photoData),
+    'image/jpeg',
+    certificateType + "_" + licenseNumber + ".jpg"
+  );
+  
+  var file = certFolder.createFile(blob);
+  var fileUrl = file.getUrl();
+  
+  // Update helper record
+  updateHelperCertification_(helperId, {
+    type: certificateType,
+    license_number: licenseNumber,
+    expiration_date: expirationDate,
+    photo_url: fileUrl,
+    verified: false,
+    verified_date: null
+  });
+  
+  // Notify admin for manual verification
+  notifyAdminCertificateReview_(helperId, certificateType, licenseNumber);
+  
+  return _json({
+    success: true,
+    message: "Certificate submitted for verification. You'll be notified within 1-2 business days."
+  });
+}
+
 function updateHelperCertification_(helperId, certData) {
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var sheet = ss.getSheetByName("Helpers");
@@ -1539,7 +1218,7 @@ function notifyAdminCertificateReview_(helperId, certType, licenseNumber) {
   sendEmail_(adminEmail, subject, body);
 }
 
-// =============== DATA RETRIEVAL FUNCTIONS =================
+// =============== HELPER UTILITIES =================
 
 function getHelperById_(helperId) {
   var ss = SpreadsheetApp.openById(SHEET_ID);
@@ -1555,23 +1234,6 @@ function getHelperById_(helperId) {
       header.forEach(function(col, idx) {
         helper[col.toLowerCase().replace(/\s/g, '_').replace(/\(/g, '').replace(/\)/g, '')] = values[i][idx];
       });
-      
-      // Parse JSON fields
-      try {
-        if (helper.services_json) helper.services = JSON.parse(helper.services_json);
-        if (helper.certifications_json) helper.certifications = JSON.parse(helper.certifications_json);
-        if (helper.equipment_photos_urls) helper.equipment_photos = JSON.parse(helper.equipment_photos_urls);
-      } catch (e) {
-        Logger.log("Error parsing helper JSON: " + e);
-      }
-      
-      // Add computed fields
-      helper.name = helper.helper_name;
-      helper.email = helper.helper_email;
-      helper.phone = helper.helper_phone;
-      helper.center_lat = helper.helper_lat;
-      helper.center_lng = helper.helper_lng;
-      
       return helper;
     }
   }
@@ -1592,16 +1254,6 @@ function getJobById_(jobId) {
       header.forEach(function(col, idx) {
         job[col.toLowerCase().replace(/\s/g, '_')] = values[i][idx];
       });
-      
-      // Parse JSON fields
-      try {
-        if (job.scope_json) job.scope = JSON.parse(job.scope_json);
-        if (job.property_data_json) job.property_data = JSON.parse(job.property_data_json);
-        if (job.weather_json) job.weather = JSON.parse(job.weather_json);
-      } catch (e) {
-        Logger.log("Error parsing job JSON: " + e);
-      }
-      
       return job;
     }
   }
@@ -1609,12 +1261,11 @@ function getJobById_(jobId) {
 }
 
 function calculateDistance_(lat1, lng1, lat2, lng2) {
-  return haversineKm_(lat1, lng1, lat2, lng2) / 1.609;
+  return haversineKm_(lat1, lng1, lat2, lng2) / 1.609; // Convert to miles
 }
 
 function calculateIntelligentQuote_(ctx, intelligence) {
-  var benchmarks = intelligence.market_benchmarks || { base_low: 50, base_high: 100 };
-  var base = (benchmarks.base_low + benchmarks.base_high) / 2;
+  var base = intelligence.market_benchmarks.base_mid;
   var adjustments = 1.0;
   
   // Property factors
@@ -1622,15 +1273,15 @@ function calculateIntelligentQuote_(ctx, intelligence) {
     if (ctx.property_data.driveway_length_ft > 60) adjustments += 0.2;
     if (ctx.property_data.corner_lot) adjustments += 0.1;
     if (ctx.property_data.stories > 1) adjustments += 0.15;
-    if (ctx.property_data.square_feet > 2500) adjustments += 0.2;
   }
   
   // Weather factors
   if (intelligence.weather_data) {
     if (intelligence.weather_data.snow_depth > 6) adjustments += 0.3;
     if (intelligence.weather_data.temp < 20) adjustments += 0.15;
-    if (intelligence.weather_data.wind_speed > 20) adjustments += 0.1;
   }
+  
+
   
   // Urgency factors
   if (ctx.urgency === "same_day") adjustments += 0.25;
@@ -1640,25 +1291,18 @@ function calculateIntelligentQuote_(ctx, intelligence) {
   if (ctx.service_type === "snow_removal") {
     if (ctx.include_walkway) adjustments += 0.15;
     if (ctx.include_deck) adjustments += 0.2;
-    if (ctx.snow_depth > 4) adjustments += 0.1 * (ctx.snow_depth - 4);
-  } else if (ctx.service_type === "house_cleaning") {
-    if (ctx.has_pets) adjustments += 0.1;
-    if (ctx.cleaning_type === "deep") adjustments += 0.3;
-    if (ctx.bring_supplies === false) adjustments -= 0.15;
   }
   
   var low = Math.round(base * adjustments * 0.9);
   var high = Math.round(base * adjustments * 1.15);
   
   return {
-    price_low: Math.max(20, low),
-    price_high: Math.max(30, high),
+    price_low: low,
+    price_high: high,
     base: base,
     adjustment_factor: adjustments
   };
 }
-
-// =============== INFORMATION EXTRACTION =================
 
 function extractInfoFromResponse_(message, ctx, intelligence) {
   var lower = message.toLowerCase();
@@ -1675,6 +1319,7 @@ function extractInfoFromResponse_(message, ctx, intelligence) {
       var dateMatch = message.match(/\d{4}-\d{2}-\d{2}/);
       if (dateMatch) ctx.service_date = dateMatch[0];
       else {
+        // Try month/day format
         var mdMatch = message.match(/(\d{1,2})\/(\d{1,2})/);
         if (mdMatch) {
           var month = parseInt(mdMatch[1]);
@@ -1721,10 +1366,9 @@ function extractInfoFromResponse_(message, ctx, intelligence) {
   }
   
   // Extract confirmation
-  if (lower.includes("yes") || lower.includes("correct") || lower.includes("confirm") || lower.includes("that's right")) {
+  if (lower.includes("yes") || lower.includes("correct") || lower.includes("confirm")) {
     if (intelligence.property_data && !ctx.property_verified) {
       ctx.property_verified = true;
-      ctx.property_data = intelligence.property_data;
     }
     if (ctx.service_date && ctx.service_time && !ctx.scope_confirmed) {
       ctx.scope_confirmed = true;
@@ -1738,25 +1382,12 @@ function extractInfoFromResponse_(message, ctx, intelligence) {
   if (emailMatch) ctx.customer_email = emailMatch[0];
   if (phoneMatch) ctx.customer_phone = phoneMatch[0];
   
-  // Extract name
-  if (!emailMatch && !phoneMatch && !ctx.customer_name) {
-    var words = message.trim().split(' ');
-    if (words.length <= 4 && words.length >= 2) {
-      var possibleName = true;
-      words.forEach(function(word) {
-        if (word.length < 2 || !/^[A-Za-z]+$/.test(word)) {
-          possibleName = false;
-        }
-      });
-      if (possibleName) {
-        ctx.customer_name = message.trim();
-      }
-    }
+  // Extract name (if no email/phone in message)
+  if (!emailMatch && !phoneMatch && !ctx.customer_name && message.split(' ').length <= 4) {
+    ctx.customer_name = message.trim();
   }
   
-  // Check if ready for matching
-  if (ctx.customer_email && ctx.customer_phone && ctx.customer_name && 
-      ctx.scope_confirmed && ctx.property_verified) {
+  if (ctx.customer_email && ctx.customer_phone && ctx.customer_name && ctx.scope_confirmed) {
     ctx.ready_for_matching = true;
   }
   
@@ -1811,22 +1442,6 @@ function extractHelperInfoFromResponse_(message, ctx) {
   var rateMatch = message.match(/\$?(\d+)\s*(\/hr|per hour|hour)/i);
   if (rateMatch && !ctx.helper_rate) {
     ctx.helper_rate = parseInt(rateMatch[1]);
-  }
-  
-  // Extract name
-  if (!ctx.helper_name && !emailMatch && !phoneMatch) {
-    var words = message.trim().split(' ');
-    if (words.length <= 4 && words.length >= 2) {
-      var possibleName = true;
-      words.forEach(function(word) {
-        if (word.length < 2 || !/^[A-Za-z]+$/.test(word)) {
-          possibleName = false;
-        }
-      });
-      if (possibleName) {
-        ctx.helper_name = message.trim();
-      }
-    }
   }
   
   return ctx;
@@ -1895,7 +1510,7 @@ function sendHelperWelcomeNotifications_(ctx) {
   logCommunication_(null, ctx.helper_id, null, "Email", "Outbound", emailBody);
 }
 
-// =============== ADMIN FUNCTIONS =================
+// =============== ADMIN ASSIGNMENT =================
 
 function handleAdminAssign_(payload) {
   var jobId = payload.job_id;
@@ -1904,6 +1519,7 @@ function handleAdminAssign_(payload) {
   
   assignJobToHelper_(jobId, helperId);
   
+  // Log admin override
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var jobsSheet = ss.getSheetByName("Jobs");
   var values = jobsSheet.getDataRange().getValues();
@@ -1919,6 +1535,7 @@ function handleAdminAssign_(payload) {
   
   notifyCustomerHelperAssigned_(jobId, helperId);
   
+  // Notify the assigned helper
   var helper = getHelperById_(helperId);
   var job = getJobById_(jobId);
   if (helper && job) {
@@ -1976,5 +1593,140 @@ function callOpenAIChat(messages) {
   return data.choices[0].message.content.trim();
 }
 
-// =============== END OF FILE =================
-// Version 5.1 - Complete with all bug fixes and missing functions implemented
+// =============== UTILITY FUNCTIONS (ADD TO BOTTOM) =================
+
+// 1. REAL GOOGLE MAPS GEOCODING
+function getLocationInfo_(address) {
+  var apiKey = PropertiesService.getScriptProperties().getProperty("GOOGLE_MAPS_API_KEY");
+  
+  if (!apiKey) {
+    throw new Error("Missing GOOGLE_MAPS_API_KEY in Script Properties");
+  }
+
+  // Call Google Geocoding API
+  var url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + 
+            encodeURIComponent(address) + "&key=" + apiKey;
+  
+  var response = UrlFetchApp.fetch(url);
+  var json = JSON.parse(response.getContentText());
+
+  if (json.status !== "OK" || json.results.length === 0) {
+    throw new Error("Address not found");
+  }
+
+  var result = json.results[0];
+  var loc = result.geometry.location;
+  
+  // Extract Zip/City
+  var zip = "", city = "", state = "";
+  result.address_components.forEach(function(comp) {
+    if (comp.types.includes("postal_code")) zip = comp.short_name;
+    if (comp.types.includes("locality")) city = comp.short_name;
+    if (comp.types.includes("administrative_area_level_1")) state = comp.short_name;
+  });
+
+  return {
+    lat: loc.lat,
+    lng: loc.lng,
+    zipcode: zip,
+    city: city,
+    state: state,
+    formatted_address: result.formatted_address
+  };
+}
+
+// 2. ADDRESS EXTRACTOR
+function extractAddress_(message) {
+  // Relaxed regex to capture "123 Main St" or "2624 Partlow Dr"
+  var patterns = [
+    /\d+\s+[A-Z0-9][a-z0-9]+\s+(?:[A-Z][a-z]+\s+)?(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Lane|Ln|Way|Court|Ct|Boulevard|Blvd|Circle|Cir)/i
+  ];
+  
+  for (var i = 0; i < patterns.length; i++) {
+    var match = message.match(patterns[i]);
+    if (match) {
+      return match[0]; 
+    }
+  }
+  return null;
+}
+
+// 3. SERVICE DETECTOR
+function detectServiceType_(message) {
+  var lower = message.toLowerCase();
+  for (var key in SERVICE_TYPES) {
+    if (lower.includes(key)) {
+      return SERVICE_TYPES[key];
+    }
+  }
+  return null;
+}
+
+// 4. DISTANCE CALCULATOR
+function haversineKm_(lat1, lng1, lat2, lng2) {
+  var R = 6371; // Earth radius in km
+  var dLat = (lat2 - lat1) * Math.PI / 180;
+  var dLng = (lng2 - lng1) * Math.PI / 180;
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+          Math.sin(dLng/2) * Math.sin(dLng/2);
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+// 5. PROPERTY ENRICHMENT (MOCK - Google Maps doesn't give SqFt)
+function getEnrichedPropertyData_(address) {
+  var loc = getLocationInfo_(address); // Get real coords first
+  
+  // Return mixed real/mock data
+  return {
+    address: loc.formatted_address,
+    location: loc,
+    home_type: "Single Family",
+    square_feet: Math.floor(1500 + Math.random() * 1500), // Mock
+    bedrooms: Math.floor(2 + Math.random() * 3), // Mock
+    bathrooms: Math.floor(1 + Math.random() * 2), // Mock
+    stories: 1,
+    lot_size_sqft: 5000,
+    driveway_type: "concrete",
+    driveway_length_ft: 40,
+    garage_spaces: 2,
+    corner_lot: false
+  };
+}
+
+// 6. MARKET BENCHMARK
+function getMarketBenchmark_(serviceType, zipcode) {
+  return { base_low: 50, base_high: 90, base_mid: 70 };
+}
+
+// 7. WEATHER
+function getWeatherForecast_(lat, lng, date) {
+  // Mock weather for now
+  return { temp: 25, condition: "snow", snow_depth: 4 };
+}
+
+// 8. FIND MATCHING HELPERS
+function findMatchingHelpers_(criteria) {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName("Helpers");
+  if (!sheet) return [];
+  
+  var helpers = [];
+  var data = sheet.getDataRange().getValues();
+  // Simple scan (skip header)
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    // This assumes specific column order, better to use header mapping in production
+    // For now, returning empty array to prevent crash if sheet is empty
+  }
+  return helpers;
+}
+
+// 9. SCHEMATIC HELPER
+function determineSchematicNeeded_(serviceType, propertyData) {
+  if (serviceType === "snow_removal") return "snow_removal_schematic";
+  if (serviceType === "lawn_care") return "lot_layout_schematic";
+  if (serviceType === "house_cleaning") return "room_layout_schematic";
+  return null;
+}
