@@ -107,6 +107,8 @@ function doPost(e) {
     switch(action) {
       case "chat":
         return handleIntelligentChat_(payload);
+      case "reverse_geocode": // <--- ADD THIS CASE
+        return handleReverseGeocode_(payload);
       case "upload_equipment_photo":
         return handleEquipmentPhotoUpload_(payload);
       case "verify_certificate":
@@ -585,34 +587,27 @@ function buildIntelligentHelperPrompt_(ctx, intelligence) {
 function getLocationInfo_(address) {
   var apiKey = PropertiesService.getScriptProperties().getProperty("Maps_API_KEY");
   
+  // FIX: Do not return fake data if key is missing.
   if (!apiKey) {
-    // Fallback for testing
-    return {
-      lat: 32.9858,
-      lng: -96.7501,
-      zipcode: "75038",
-      city: "Irving",
-      state: "TX",
-      neighborhood: "Las Colinas",
-      formatted_address: address
-    };
+    throw new Error("Maps_API_KEY is missing in Script Properties.");
   }
 
   var url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + 
             encodeURIComponent(address) + "&key=" + apiKey;
-  
+            
   try {
     var response = UrlFetchApp.fetch(url);
     var json = JSON.parse(response.getContentText());
 
     if (json.status !== "OK" || json.results.length === 0) {
-      throw new Error("Address not found");
+       // Return the input address if Google can't find it, rather than a fake one
+       return { formatted_address: address, lat: null, lng: null, zipcode: null }; 
     }
 
     var result = json.results[0];
     var loc = result.geometry.location;
-    
     var zip = "", city = "", state = "", neighborhood = "";
+    
     result.address_components.forEach(function(comp) {
       if (comp.types.includes("postal_code")) zip = comp.short_name;
       if (comp.types.includes("locality")) city = comp.short_name;
@@ -631,36 +626,41 @@ function getLocationInfo_(address) {
     };
   } catch (err) {
     Logger.log("Geocoding error: " + err);
-    return {
-      lat: 32.9858,
-      lng: -96.7501,
-      zipcode: "75038",
-      city: "Irving",
-      state: "TX",
-      neighborhood: "Las Colinas",
-      formatted_address: address
-    };
+    // Return raw input on error so the AI knows what the user typed
+    return { formatted_address: address, lat: null, lng: null }; 
   }
 }
 
 // 2. REAL PROPERTY ENRICHMENT
 function getEnrichedPropertyData_(address) {
+  // 1. Get accurate location first
   var location = getLocationInfo_(address);
+  
+  // If Geocoding failed, we cannot get property data. Return basic info.
+  if (!location.lat) {
+     return {
+       address: address,
+       location: location,
+       error: "Could not locate address"
+     };
+  }
+
   var rapidApiKey = PropertiesService.getScriptProperties().getProperty("RapidAPI-Key");
   
+  // 2. Initialize with NULL values (No more fake 2000 sqft defaults)
   var propertyData = {
     address: location.formatted_address,
     location: location,
-    home_type: "Single Family",
-    square_feet: 2000,
-    bedrooms: 3,
-    bathrooms: 2,
-    stories: 1,
-    lot_size_sqft: 6500,
-    yard_sqft: 4000,
-    driveway_type: "concrete",
-    driveway_length_ft: 50,
-    garage_spaces: 2,
+    home_type: null,
+    square_feet: null,
+    bedrooms: null,
+    bathrooms: null,
+    stories: null,
+    lot_size_sqft: null,
+    yard_sqft: null,
+    driveway_type: "paved", // Safe assumption
+    driveway_length_ft: null,
+    garage_spaces: null,
     corner_lot: false
   };
   
@@ -683,12 +683,13 @@ function getEnrichedPropertyData_(address) {
         var data = JSON.parse(response.getContentText());
         if (data && data[0]) {
           var prop = data[0];
-          propertyData.square_feet = prop.squareFootage || propertyData.square_feet;
-          propertyData.bedrooms = prop.bedrooms || propertyData.bedrooms;
-          propertyData.bathrooms = prop.bathrooms || propertyData.bathrooms;
-          propertyData.lot_size_sqft = prop.lotSize || propertyData.lot_size_sqft;
-          propertyData.home_type = prop.propertyType || propertyData.home_type;
-          propertyData.year_built = prop.yearBuilt;
+          // Only overwrite if data exists
+          if (prop.squareFootage) propertyData.square_feet = prop.squareFootage;
+          if (prop.bedrooms) propertyData.bedrooms = prop.bedrooms;
+          if (prop.bathrooms) propertyData.bathrooms = prop.bathrooms;
+          if (prop.lotSize) propertyData.lot_size_sqft = prop.lotSize;
+          if (prop.propertyType) propertyData.home_type = prop.propertyType;
+          propertyData.stories = prop.stories || 1; 
           
           if (prop.lotSize && prop.squareFootage) {
             propertyData.yard_sqft = prop.lotSize - (prop.squareFootage * 1.2);
@@ -700,8 +701,11 @@ function getEnrichedPropertyData_(address) {
     }
   }
   
-  // Estimate driveway based on property size
-  propertyData.driveway_length_ft = Math.floor(40 + (propertyData.square_feet / 100));
+  // Estimate driveway only if we have square footage, otherwise leave null
+  if (propertyData.square_feet) {
+      propertyData.driveway_length_ft = Math.floor(40 + (propertyData.square_feet / 100));
+      propertyData.garage_spaces = propertyData.square_feet > 2500 ? 3 : 2;
+  }
   
   return propertyData;
 }
@@ -710,16 +714,8 @@ function getEnrichedPropertyData_(address) {
 function getWeatherForecast_(lat, lng, date) {
   var weatherApiKey = PropertiesService.getScriptProperties().getProperty("WEATHER_API_KEY");
   
-  if (!weatherApiKey) {
-    return {
-      date: date,
-      temp: 45,
-      condition: "clear",
-      snow_depth: 0,
-      wind_speed: 10,
-      precipitation_chance: 20
-    };
-  }
+  // FIX: Return null if no key, don't fake the weather
+  if (!weatherApiKey) return null;
   
   try {
     var targetDate = new Date(date);
@@ -728,10 +724,10 @@ function getWeatherForecast_(lat, lng, date) {
     
     var weatherData = {
       date: date,
-      temp: 45,
-      condition: "clear",
+      temp: null,
+      condition: null,
       snow_depth: 0,
-      wind_speed: 10,
+      wind_speed: null,
       precipitation_chance: 0
     };
     
@@ -783,23 +779,18 @@ function getWeatherForecast_(lat, lng, date) {
           weatherData.snow_depth = Math.round(closestForecast.snow["3h"] * 0.39 / 3);
         }
       }
+    } else {
+        // Too far in future
+        return null;
     }
     
     return weatherData;
     
   } catch (err) {
     Logger.log("Weather API error: " + err);
-    return {
-      date: date,
-      temp: 45,
-      condition: "clear",
-      snow_depth: 0,
-      wind_speed: 10,
-      precipitation_chance: 20
-    };
+    return null; // Return null on error so AI doesn't hallucinate
   }
 }
-
 // 4. MARKET BENCHMARKS WITH ZIP CODE ADJUSTMENTS
 function getMarketBenchmark_(serviceType, zipcode) {
   var basePricing = {
@@ -847,88 +838,124 @@ function getZipCodeCostAdjustment_(zipcode) {
 // =============== SCHEMATIC GENERATION =================
 
 function generateSchematicData_(ctx, intelligence) {
-  if (!ctx.property_data || !ctx.service_type) return null;
+  // strictly require property data and location to generate a schematic
+  if (!ctx.property_data || !ctx.service_type || !ctx.property_data.location) return null;
+  
+  var apiKey = PropertiesService.getScriptProperties().getProperty("Maps_API_KEY");
+  if (!apiKey) return null;
+
+  var lat = ctx.property_data.location.lat;
+  var lng = ctx.property_data.location.lng;
   
   var data = {
     type: null,
+    map_image: null, // New field for the visual component
     property: ctx.property_data,
     service: ctx.service_type,
     scope: {}
   };
   
+  // Base Map URL construction helpers
+  var baseStaticMap = "https://maps.googleapis.com/maps/api/staticmap?center=" + lat + "," + lng + "&size=600x300&key=" + apiKey;
+  var baseStreetView = "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=" + lat + "," + lng + "&key=" + apiKey;
+
   switch (ctx.service_type) {
     case "snow_removal":
       data.type = "snow_removal_schematic";
+      // Hybrid view, Zoom 20 (very close) to see driveway details clearly
+      data.map_image = baseStaticMap + "&zoom=20&maptype=hybrid";
+      
       data.scope = {
-        driveway_length: ctx.property_data.driveway_length_ft || 50,
-        driveway_width: (ctx.property_data.garage_spaces || 2) * 9,
-        garage_spaces: ctx.property_data.garage_spaces || 2,
+        // Use RapidAPI data if available, fall back to calculation based on House SqFt, fall back to default
+        driveway_length: ctx.property_data.driveway_length_ft || 
+                        (ctx.property_data.square_feet ? Math.floor(40 + (ctx.property_data.square_feet/100)) : 50),
+        
+        // Estimate width based on garage spaces (9ft per car standard)
+        garage_spaces: ctx.property_data.garage_spaces || (ctx.property_data.square_feet > 2500 ? 3 : 2),
+        driveway_width: (ctx.property_data.garage_spaces || 2) * 10, // 10ft clearance per car
+        
         include_walkway: ctx.include_walkway,
-        walkway_length: 40,
+        walkway_length: ctx.include_walkway ? 30 : 0, // Standard avg
         include_deck: ctx.include_deck,
-        deck_size: "12x16",
         snow_depth: ctx.snow_depth,
         corner_lot: ctx.property_data.corner_lot
       };
       break;
       
+    case "lawn_care":
+      data.type = "lot_layout_schematic";
+      // Hybrid view, Zoom 19 to see property lines/fences
+      data.map_image = baseStaticMap + "&zoom=19&maptype=hybrid";
+      
+      data.scope = {
+        lot_size_sqft: ctx.property_data.lot_size_sqft,
+        // Estimate footprint: Sqft / stories * buffer
+        house_footprint: Math.floor((ctx.property_data.square_feet / (ctx.property_data.stories || 1)) * 1.2),
+        // Yard is Lot - Footprint - Driveway
+        yard_sqft: ctx.property_data.yard_sqft || (ctx.property_data.lot_size_sqft - (ctx.property_data.square_feet/ctx.property_data.stories)),
+        corner_lot: ctx.property_data.corner_lot,
+        driveway: ctx.property_data.driveway_type,
+        slope: "moderate"
+      };
+      break;
+      
     case "house_cleaning":
       data.type = "room_layout_schematic";
+      // Roadmap view, Zoom 20 to show building outline/access
+      data.map_image = baseStaticMap + "&zoom=20&maptype=roadmap";
+      
       data.scope = {
         sqft: ctx.property_data.square_feet,
         bedrooms: ctx.property_data.bedrooms,
         bathrooms: ctx.property_data.bathrooms,
         stories: ctx.property_data.stories,
-        kitchen: true,
+        kitchen: true, // All houses have kitchens
         living_room: true,
         has_pets: ctx.has_pets,
-        cleaning_type: ctx.cleaning_type || "deep"
-      };
-      break;
-      
-    case "lawn_care":
-      data.type = "lot_layout_schematic";
-      data.scope = {
-        lot_size_sqft: ctx.property_data.lot_size_sqft,
-        house_footprint: ctx.property_data.square_feet * 1.2,
-        yard_sqft: ctx.property_data.yard_sqft,
-        corner_lot: ctx.property_data.corner_lot,
-        driveway: ctx.property_data.driveway_type,
-        grass_type: "mixed",
-        slope: "moderate"
+        cleaning_type: ctx.cleaning_type || "standard"
       };
       break;
       
     case "dog_walking":
+      data.type = "walking_route_schematic";
+      // Roadmap view, Zoom 15 (Neighborhood level)
+      data.map_image = baseStaticMap + "&zoom=15&maptype=roadmap";
+      
       if (ctx.walk_duration) {
-        data.type = "walking_route_schematic";
         data.scope = {
           duration: ctx.walk_duration,
-          distance_km: (ctx.walk_duration * 0.07),
+          // Avg walking speed 3mph (approx 0.05 miles per min)
+          distance_est_miles: (parseInt(ctx.walk_duration) * 0.05).toFixed(1),
           start_location: {
             lat: ctx.property_data.location.lat,
             lng: ctx.property_data.location.lng
           },
-          route_type: "circular"
+          route_type: "neighborhood_loop"
         };
       }
       break;
       
     case "holiday_lights":
       data.type = "house_exterior_schematic";
+      // USE STREET VIEW for lights to see roofline/height
+      data.map_image = baseStreetView;
+      
+      var stories = ctx.property_data.stories || 1;
+      var sqft = ctx.property_data.square_feet || 2000;
+      
       data.scope = {
-        stories: ctx.property_data.stories,
-        roofline_ft: Math.floor(ctx.property_data.square_feet / ctx.property_data.stories * 0.15),
-        gutter_ft: Math.floor(ctx.property_data.square_feet / ctx.property_data.stories * 0.12),
-        trees: 2,
-        bushes: 6
+        stories: stories,
+        // Estimation logic: sqrt of footprint * 4 sides * complexity factor
+        roofline_ft: Math.floor(Math.sqrt(sqft/stories) * 4 * 1.2),
+        gutter_ft: Math.floor(Math.sqrt(sqft/stories) * 2), // Front and back usually
+        trees: 2, // Default placeholder
+        bushes: 4
       };
       break;
   }
   
   return data;
 }
-
 // =============== HELPER PROFILE MANAGEMENT =================
 
 function saveHelperToSheet_(ctx) {
@@ -2223,38 +2250,41 @@ function callOpenAIChat(messages) {
   
   return data.choices[0].message.content.trim();
 }
-function testDatabaseConnection() {
-  var sheetId = "1yyD9xQD4_CAYiqW954nl8yinqRwQf82pTcA56vwefjo"; // Your ID
-  
+
+// =============== REVERSE GEOCODING =================
+
+function handleReverseGeocode_(payload) {
+  var lat = payload.lat;
+  var lng = payload.lng;
+  var apiKey = PropertiesService.getScriptProperties().getProperty("Maps_API_KEY");
+
+  if (!apiKey) {
+    return _json({ success: false, error: "API Key Missing" });
+  }
+
+  // Google Maps Reverse Geocoding Endpoint
+  var url = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + 
+            lat + "," + lng + "&key=" + apiKey;
+
   try {
-    Logger.log("1. Attempting to open spreadsheet...");
-    var ss = SpreadsheetApp.openById(sheetId);
-    Logger.log("   - Success: Spreadsheet '" + ss.getName() + "' found.");
-    
-    Logger.log("2. Checking for 'Jobs' tab...");
-    var sheet = ss.getSheetByName("Jobs");
-    
-    if (!sheet) {
-      Logger.log("   - 'Jobs' tab not found. Creating it...");
-      sheet = ss.insertSheet("Jobs");
-      Logger.log("   - Success: 'Jobs' tab created.");
+    var response = UrlFetchApp.fetch(url);
+    var json = JSON.parse(response.getContentText());
+
+    if (json.status === "OK" && json.results.length > 0) {
+      // Get the best formatted address
+      var result = json.results[0];
+      return _json({ 
+        success: true, 
+        address: result.formatted_address,
+        details: result // Return full details if needed
+      });
     } else {
-      Logger.log("   - 'Jobs' tab exists.");
+      return _json({ success: false, error: "Location not found" });
     }
-    
-    Logger.log("3. Attempting to write a test row...");
-    sheet.appendRow(["TEST_ENTRY", "System Check", "Success", new Date()]);
-    Logger.log("   - Success: Row written.");
-    
-    Logger.log("✅ DATABASE CONNECTION IS PERFECT.");
-    
   } catch (e) {
-    Logger.log("❌ FAILURE: " + e.toString());
+    return _json({ success: false, error: e.toString() });
   }
 }
-function forceAuthorization() {
-  // This command forces Google to ask for Spreadsheet permissions
-  SpreadsheetApp.create("DELETE_ME_TEMP_SHEET");
 // =============== END OF FILE =================
 // Version 6.0 - COMPLETE Production Backend with Real APIs
 // Ready for deployment to Google Apps Script
