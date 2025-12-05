@@ -711,6 +711,80 @@ const PhotoUpload = ({ onUpload, userId, userType, photoType, label }) => {
   );
 };
 
+const LocationButton = ({ onLocationFound, isLoading }) => {
+  const [locating, setLocating] = useState(false);
+
+  const handleClick = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          // 1. Get Coordinates from Browser
+          const { latitude, longitude } = position.coords;
+          
+          // 2. Ask Backend to translate to Address (Reverse Geocode)
+          const response = await fetch(BACKEND_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'reverse_geocode',
+              lat: latitude,
+              lng: longitude
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            onLocationFound(data.address);
+          } else {
+            alert("Could not determine address: " + data.error);
+          }
+        } catch (error) {
+          console.error(error);
+          alert("Error getting location");
+        } finally {
+          setLocating(false);
+        }
+      },
+      (error) => {
+        alert("Unable to retrieve your location. Please allow location access.");
+        setLocating(false);
+      }
+    );
+  };
+
+  return (
+    <button 
+      onClick={handleClick} 
+      disabled={locating || isLoading}
+      className="btn-small"
+      style={{
+        background: '#E0F2FE', 
+        color: '#0284C7', 
+        border: '1px solid #0284C7',
+        borderRadius: '20px',
+        padding: '8px 12px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        marginBottom: '10px',
+        alignSelf: 'flex-end',
+        fontSize: '12px'
+      }}
+    >
+      {locating ? <span className="loader-dot"></span> : '📍'}
+      {locating ? 'Locating...' : 'Use My Current Location'}
+    </button>
+  );
+};
+
 // ============ MAIN APP ============
 const App = () => {
   const [userMode, setUserMode] = useState('customer');
@@ -840,6 +914,12 @@ const App = () => {
     setCtx(prev => ({...prev, uploaded_photos: [...(prev.uploaded_photos || []), fileUrl]}));
   };
 
+
+  // PASTE THIS HERE:
+  const handleGPSLocation = (address) => {
+    setInput(address);
+  };
+
   if (showLanding) {
     return (
       <div>
@@ -931,7 +1011,11 @@ const App = () => {
 
           <div ref={messagesEndRef} />
         </div>
+        <LocationButton onLocationFound={handleGPSLocation} isLoading={isLoading} />
 
+        <div className="card-nano" style={{padding: '8px', display: 'flex', gap: '8px'}}>
+          <input
+            value={input}
         <div className="card-nano" style={{padding: '8px', display: 'flex', gap: '8px'}}>
           <input
             value={input}
