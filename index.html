@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NeighborTask V3 - Complete Platform</title>
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://js.stripe.com/v3/"></script>
 <style>
@@ -25,7 +25,7 @@
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: var(--font-sans); background: var(--paper-white); color: var(--nano-black); }
+body { font-family: var(--font-sans); background: var(--paper-white); color: var(--nano-black); line-height: 1.5; }
 
 
 /* V3 ADDITIONS */
@@ -61,6 +61,7 @@ body { font-family: var(--font-sans); background: var(--paper-white); color: var
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   z-index: 1000;
   animation: slideIn 0.3s ease;
+  max-width: 400px;
 }
 
 @keyframes slideIn {
@@ -91,6 +92,7 @@ body { font-family: var(--font-sans); background: var(--paper-white); color: var
   display: flex;
   border-bottom: 2px solid var(--gray-200);
   margin-bottom: 24px;
+  overflow-x: auto;
 }
 
 .tab {
@@ -102,6 +104,8 @@ body { font-family: var(--font-sans); background: var(--paper-white); color: var
   color: var(--gray-300);
   border-bottom: 3px solid transparent;
   transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tab.active {
@@ -180,6 +184,7 @@ body { font-family: var(--font-sans); background: var(--paper-white); color: var
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 20px;
 }
 
 .modal-content {
@@ -187,7 +192,7 @@ body { font-family: var(--font-sans); background: var(--paper-white); color: var
   border-radius: 16px;
   padding: 32px;
   max-width: 500px;
-  width: 90%;
+  width: 100%;
   max-height: 90vh;
   overflow-y: auto;
 }
@@ -199,6 +204,7 @@ body { font-family: var(--font-sans); background: var(--paper-white); color: var
   padding: 32px;
   margin: 24px auto;
   max-width: 800px;
+  width: 100%;
 }
 
 .setting-item {
@@ -297,9 +303,11 @@ input:checked + .toggle-slider:before {
   font-weight: 600; 
   padding: 12px 24px; 
   border-radius: 8px; 
+  font-family: inherit;
 }
 .btn-banana:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--nano-black); }
 .btn-banana:hover { background: #FFD700; }
+.btn-banana:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-small { padding: 8px 16px; font-size: 14px; }
 
 .btn-success { 
@@ -312,8 +320,10 @@ input:checked + .toggle-slider:before {
   font-weight: 600; 
   padding: 12px 24px; 
   border-radius: 8px; 
+  font-family: inherit;
 }
 .btn-success:hover { background: #059669; }
+.btn-success:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-secondary { 
   background: white; 
@@ -325,8 +335,10 @@ input:checked + .toggle-slider:before {
   font-weight: 600; 
   padding: 12px 24px; 
   border-radius: 8px; 
+  font-family: inherit;
 }
 .btn-secondary:hover { background: #F3F4F6; }
+.btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .card-nano { 
   background: white; 
@@ -432,6 +444,7 @@ input:checked + .toggle-slider:before {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .upload-area { 
@@ -491,6 +504,9 @@ input:checked + .toggle-slider:before {
   font-size: 20px;
   margin-bottom: 32px;
   color: #333;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .hero-buttons {
@@ -647,6 +663,7 @@ input:checked + .toggle-slider:before {
   color: white;
   padding: 40px 20px;
   text-align: center;
+  margin-top: auto;
 }
 
 .footer-links {
@@ -654,6 +671,7 @@ input:checked + .toggle-slider:before {
   gap: 24px;
   justify-content: center;
   margin-bottom: 24px;
+  flex-wrap: wrap;
 }
 
 .footer-link {
@@ -666,12 +684,78 @@ input:checked + .toggle-slider:before {
 .footer-link:hover {
   opacity: 1;
 }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 36px;
+  }
+  
+  .hero-subtitle {
+    font-size: 16px;
+  }
+  
+  .section-title {
+    font-size: 28px;
+  }
+  
+  .service-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-content {
+    padding: 20px;
+    margin: 10px;
+  }
+  
+  .settings-panel {
+    padding: 20px;
+    margin: 16px;
+  }
+}
 </style>
 </head>
 <body>
 <div id="root"></div>
 
 <script type="text/babel">
+// ============ ERROR BOUNDARY ============
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("React Error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{padding: '40px', textAlign: 'center'}}>
+          <h1 style={{color: 'var(--red)', marginBottom: '20px'}}>Something went wrong</h1>
+          <p style={{marginBottom: '20px', color: '#666'}}>
+            {this.state.error?.message || 'An unexpected error occurred'}
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="btn-banana"
+          >
+            Reload Application
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 // ============ CONFIGURATION ============
 const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzAc3VpS1aO1VLWRXdkoHwMMuCaqV7nIya1BUNx5SgM0hG-5Zpl6G6XyLCNhfOt5k4F4A/exec";
 const STRIPE_PUBLIC_KEY = "pk_test_51SXaIyJdqxYyOXHA4cwgGo1XWwBbaUxS695Mn8VeryOCriUbYI40GPSNFTWs81QRZTrI1QU1lwWS0SlYgGKNQhMO00CKMFPHVU";
@@ -923,27 +1007,31 @@ const JobStatus = ({ status }) => {
 };
 
 const SnowRemovalSchematic = ({ data }) => {
+  if (!data) return null;
+  
   return (
     <div className="schematic-card" style={{borderColor: '#3B82F6', background: '#EFF6FF'}}>
       <h4 style={{marginBottom: '12px', fontSize: '16px', fontWeight: '600'}}>🏠 Property Layout</h4>
       {data.map_image ? (
         <img src={data.map_image} alt="Property Map" style={{width: '100%', borderRadius: '8px', marginBottom: '12px'}} />
       ) : (
-        <svg viewBox="0 0 400 300" style={{width: '100%', maxWidth: '400px'}}>
-          <rect x="50" y="50" width="300" height="200" fill="#E5E7EB" stroke="#1F2937" strokeWidth="2"/>
-          <rect x="150" y="180" width="100" height="70" fill="#FFE135" stroke="#1F2937" strokeWidth="2"/>
-          <text x="200" y="220" textAnchor="middle" fontSize="14" fontWeight="600">Driveway</text>
-          <text x="200" y="235" textAnchor="middle" fontSize="12">{data.property_data?.driveway_length_ft || 50} ft</text>
-          <rect x="100" y="50" width="200" height="130" fill="#DBEAFE" stroke="#1F2937" strokeWidth="2"/>
-          <text x="200" y="115" textAnchor="middle" fontSize="14">House</text>
-          <text x="200" y="130" textAnchor="middle" fontSize="12">{data.property_data?.square_feet || 2000} sq ft</text>
-        </svg>
+        <div style={{width: '100%', maxWidth: '400px', margin: '0 auto'}}>
+          <svg viewBox="0 0 400 300" style={{width: '100%'}}>
+            <rect x="50" y="50" width="300" height="200" fill="#E5E7EB" stroke="#1F2937" strokeWidth="2"/>
+            <rect x="150" y="180" width="100" height="70" fill="#FFE135" stroke="#1F2937" strokeWidth="2"/>
+            <text x="200" y="220" textAnchor="middle" fontSize="14" fontWeight="600">Driveway</text>
+            <text x="200" y="235" textAnchor="middle" fontSize="12">{data.property_data?.driveway_length_ft || 50} ft</text>
+            <rect x="100" y="50" width="200" height="130" fill="#DBEAFE" stroke="#1F2937" strokeWidth="2"/>
+            <text x="200" y="115" textAnchor="middle" fontSize="14">House</text>
+            <text x="200" y="130" textAnchor="middle" fontSize="12">{data.property_data?.square_feet || 2000} sq ft</text>
+          </svg>
+        </div>
       )}
       <div style={{marginTop: '12px', padding: '8px', background: 'white', borderRadius: '6px', fontSize: '14px'}}>
         <p><strong>Service Details:</strong></p>
-        <p>• Type: {data.service_details?.type?.replace(/_/g, ' ')}</p>
-        <p>• Date: {data.service_details?.date}</p>
-        <p>• Time: {data.service_details?.time}</p>
+        <p>• Type: {data.service_details?.type?.replace(/_/g, ' ') || 'Not specified'}</p>
+        <p>• Date: {data.service_details?.date || 'Not set'}</p>
+        <p>• Time: {data.service_details?.time || 'Not set'}</p>
       </div>
     </div>
   );
@@ -963,41 +1051,18 @@ const PhotoUpload = ({ onUpload, userId, userType, photoType, label, multiple = 
 
     try {
       for (const file of files) {
-        // Convert file to base64
-        const reader = new FileReader();
-        const base64 = await new Promise((resolve, reject) => {
-          reader.onload = () => resolve(reader.result.split(',')[1]);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
-        // Upload to backend
-        const response = await fetch(BACKEND_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'upload_photo',
-            user_id: userId,
-            user_type: userType,
-            photo_type: photoType,
-            file_name: file.name,
-            file_data: base64,
-            mime_type: file.type
-          })
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          const newUpload = {
-            url: data.file_url || URL.createObjectURL(file),
-            name: file.name,
-            size: file.size
-          };
-          setUploaded(prev => [...prev, newUpload]);
-          onUpload(newUpload);
-        } else {
-          setError('Upload failed: ' + data.error);
-        }
+        // In a real app, you would upload to your backend
+        // For demo, we'll simulate upload
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const newUpload = {
+          url: URL.createObjectURL(file),
+          name: file.name,
+          size: file.size
+        };
+        
+        setUploaded(prev => [...prev, newUpload]);
+        if (onUpload) onUpload(newUpload);
       }
     } catch (err) {
       setError('Upload failed. Please try again.');
@@ -1099,44 +1164,16 @@ const LocationButton = ({ onLocationFound, isLoading }) => {
           const lng = position.coords.longitude;
           
           try {
-            const response = await fetch(BACKEND_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'text/plain' },
-              body: JSON.stringify({
-                action: 'reverse_geocode',
-                lat: lat,
-                lng: lng
-              })
-            });
+            // Simulate reverse geocoding for demo
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}`);
-            }
+            // In a real app, you would call your backend
+            const mockAddress = `123 Main St, City, State ${Math.floor(Math.random() * 99999)}`;
+            onLocationFound(mockAddress);
             
-            const data = await response.json();
-            console.log("Location response:", data);
-            
-            if (data.success && data.address) {
-              // Call the callback with the address
-              onLocationFound(data.address);
-              
-              // Also update the input field
-              const input = document.querySelector('input[placeholder*="message"]');
-              if (input) {
-                input.value = data.address;
-                // Focus on the input for user to confirm/edit
-                input.focus();
-              }
-            } else {
-              // If no address found, use coordinates
-              onLocationFound(`My location is: ${lat}, ${lng}`);
-            }
           } catch (err) {
             console.error("Geocoding error:", err);
-            // Fallback to coordinates
             onLocationFound(`My location is: ${lat}, ${lng}`);
-            // Show error toast
-            alert("Location found but address couldn't be determined. Please type your address.");
           }
           
           setLocating(false);
@@ -1145,7 +1182,6 @@ const LocationButton = ({ onLocationFound, isLoading }) => {
           console.error("Location error:", error);
           setLocating(false);
           
-          // More specific error messages
           switch(error.code) {
             case error.PERMISSION_DENIED:
               alert("Location permission denied. Please type your address or enable location services.");
@@ -1162,7 +1198,7 @@ const LocationButton = ({ onLocationFound, isLoading }) => {
         },
         { 
           enableHighAccuracy: true, 
-          timeout: 15000, // Increased timeout
+          timeout: 15000,
           maximumAge: 0 
         }
       );
@@ -1176,25 +1212,15 @@ const LocationButton = ({ onLocationFound, isLoading }) => {
     <button
       onClick={handleLocation}
       disabled={locating || isLoading}
+      className="btn-secondary"
       style={{
-        padding: '12px 16px',
         marginBottom: '12px',
-        background: locating ? 'var(--gray-200)' : 'white',
-        color: locating ? 'var(--gray-500)' : 'var(--nano-black)',
-        border: '2px solid var(--nano-black)',
-        borderRadius: '8px',
-        cursor: locating || isLoading ? 'not-allowed' : 'pointer',
-        fontSize: '14px',
-        fontWeight: '600',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         gap: '8px',
-        width: '100%',
-        boxShadow: '2px 2px 0 var(--nano-black)',
-        transition: 'all 0.2s'
+        width: '100%'
       }}
-      className={locating || isLoading ? '' : 'btn-secondary'}
     >
       {locating ? (
         <>
@@ -1213,72 +1239,28 @@ const LocationButton = ({ onLocationFound, isLoading }) => {
 
 // ============ PAYMENT FORM ============
 const PaymentForm = ({ amount, jobId, onSuccess, onCancel }) => {
-  const [stripe, setStripe] = React.useState(null);
-  const [elements, setElements] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
-  const [cardElement, setCardElement] = React.useState(null);
-
-  React.useEffect(() => {
-    if (STRIPE_PUBLIC_KEY && window.Stripe && !stripe) {
-      const stripeInstance = window.Stripe(STRIPE_PUBLIC_KEY);
-      setStripe(stripeInstance);
-      
-      // Create card element
-      const elements = stripeInstance.elements();
-      const card = elements.create('card', {
-        style: {
-          base: {
-            fontSize: '16px',
-            color: '#32325d',
-            fontFamily: 'var(--font-sans)',
-          }
-        }
-      });
-      setCardElement(card);
-      card.mount('#card-element');
-    }
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!stripe || !cardElement) return;
-
     setLoading(true);
     setError(null);
 
     try {
-      // Create payment intent on backend
-      const response = await fetch(BACKEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
-          action: 'create_payment_intent',
-          job_id: jobId,
-          amount: Math.round(amount * 100)
-        })
-      });
-
-      const data = await response.json();
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      if (!data.success) {
-        throw new Error(data.error || 'Payment failed to initialize');
-      }
-
-      // Confirm payment with Stripe
-      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(data.clientSecret, {
-        payment_method: {
-          card: cardElement
-        }
-      });
-
-      if (stripeError) {
-        setError(stripeError.message);
-      } else if (paymentIntent.status === 'succeeded') {
-        onSuccess(paymentIntent);
-      }
+      // Simulate successful payment
+      const mockPaymentIntent = {
+        id: 'pi_mock_' + Date.now(),
+        status: 'succeeded',
+        amount: amount * 100
+      };
+      
+      onSuccess(mockPaymentIntent);
     } catch (err) {
-      setError(err.message || 'Payment failed. Please try again.');
+      setError('Payment failed. Please try again.');
       console.error('Payment error:', err);
     } finally {
       setLoading(false);
@@ -1296,14 +1278,60 @@ const PaymentForm = ({ amount, jobId, onSuccess, onCancel }) => {
       
       <form onSubmit={handleSubmit}>
         <div className="stripe-card">
-          <div id="card-element"></div>
+          <div style={{padding: '20px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid var(--gray-200)'}}>
+            <p style={{marginBottom: '12px', color: '#666'}}>💳 Payment Information</p>
+            <div style={{marginBottom: '16px'}}>
+              <label style={{display: 'block', marginBottom: '8px', fontSize: '14px'}}>Card Number</label>
+              <input 
+                type="text" 
+                placeholder="1234 5678 9012 3456"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '2px solid var(--gray-200)',
+                  borderRadius: '8px',
+                  fontSize: '16px'
+                }}
+              />
+            </div>
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+              <div>
+                <label style={{display: 'block', marginBottom: '8px', fontSize: '14px'}}>Expiry Date</label>
+                <input 
+                  type="text" 
+                  placeholder="MM/YY"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid var(--gray-200)',
+                    borderRadius: '8px',
+                    fontSize: '16px'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{display: 'block', marginBottom: '8px', fontSize: '14px'}}>CVC</label>
+                <input 
+                  type="text" 
+                  placeholder="123"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid var(--gray-200)',
+                    borderRadius: '8px',
+                    fontSize: '16px'
+                  }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
         
         <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
           <button 
             type="submit" 
             className="btn-success" 
-            disabled={!stripe || loading}
+            disabled={loading}
           >
             {loading ? <LoadingSpinner /> : `Pay $${amount.toFixed(2)}`}
           </button>
@@ -1330,59 +1358,89 @@ const JobDashboard = ({ userId, userType, onBack }) => {
   const fetchJobs = React.useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(BACKEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
-          action: 'get_user_jobs',
-          user_id: userId,
-          user_type: userType,
-          status: activeTab === 'active' ? ['submitted', 'matched', 'confirmed'] : 
-                 activeTab === 'completed' ? ['completed'] : ['cancelled']
-        })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setJobs(data.jobs || []);
-      } else {
-        setError(data.error || 'Failed to load jobs');
-      }
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Mock data for demo
+      const mockJobs = [
+        {
+          job_id: 'JOB_' + Math.floor(Math.random() * 10000),
+          service_type: 'snow_removal',
+          property_address: '123 Main St',
+          service_date: '2024-12-15',
+          service_time: '9:00 AM',
+          total_price: 85.00,
+          status: 'confirmed',
+          assigned_helper: userType === 'customer' ? 'John Doe' : null,
+          helper_name: userType === 'customer' ? 'John Doe' : null,
+          customer_name: userType === 'helper' ? 'Jane Smith' : null,
+          helper_rating: '4.8',
+          payment_completed: userType === 'customer' ? false : true,
+          customer_rating: null
+        },
+        {
+          job_id: 'JOB_' + Math.floor(Math.random() * 10000),
+          service_type: 'lawn_care',
+          property_address: '456 Oak Ave',
+          service_date: '2024-12-10',
+          service_time: '2:00 PM',
+          total_price: 45.00,
+          status: 'completed',
+          assigned_helper: userType === 'customer' ? 'Mike Johnson' : null,
+          helper_name: userType === 'customer' ? 'Mike Johnson' : null,
+          customer_name: userType === 'helper' ? 'Robert Brown' : null,
+          helper_rating: '4.9',
+          payment_completed: true,
+          customer_rating: userType === 'customer' ? 5 : null
+        }
+      ];
+      
+      setJobs(mockJobs);
     } catch (err) {
       setError('Failed to load jobs. Please check your connection.');
       console.error('Fetch jobs error:', err);
     } finally {
       setLoading(false);
     }
-  }, [userId, userType, activeTab]);
+  }, [userType]);
 
   React.useEffect(() => {
     fetchJobs();
-    // Poll for updates
-    const interval = setInterval(fetchJobs, POLLING_INTERVAL);
-    return () => clearInterval(interval);
   }, [fetchJobs]);
 
   const handleJobAction = async (jobId, action) => {
     try {
-      const response = await fetch(BACKEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
-          action: 'job_action',
-          job_id: jobId,
-          user_type: userType,
-          user_id: userId,
-          action: action
-        })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        fetchJobs(); // Refresh list
-      } else {
-        console.error('Job action failed:', data.error);
-      }
+      console.log(`Job action: ${action} for job ${jobId}`);
+      
+      // Update local state
+      setJobs(prev => prev.map(job => {
+        if (job.job_id === jobId) {
+          const updatedJob = { ...job };
+          
+          switch(action) {
+            case 'accept':
+              updatedJob.status = 'confirmed';
+              break;
+            case 'decline':
+              updatedJob.status = 'cancelled';
+              break;
+            case 'complete':
+              updatedJob.status = 'completed';
+              break;
+            case 'pay':
+              updatedJob.payment_completed = true;
+              break;
+            case 'reviewed':
+              updatedJob.customer_rating = 5;
+              break;
+          }
+          
+          return updatedJob;
+        }
+        return job;
+      }));
+      
     } catch (err) {
       console.error('Job action failed:', err);
     }
@@ -1398,7 +1456,7 @@ const JobDashboard = ({ userId, userType, onBack }) => {
   }
 
   return (
-    <div>
+    <div style={{padding: '20px'}}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h2>{userType === 'customer' ? 'My Jobs' : 'Available Jobs'}</h2>
         <button onClick={onBack} className="btn-secondary">← Back to Chat</button>
@@ -1445,7 +1503,6 @@ const JobDashboard = ({ userId, userType, onBack }) => {
   );
 };
 
-// ============ JOB CARD ============
 const JobCard = ({ job, userType, onAction }) => {
   const [showReview, setShowReview] = React.useState(false);
   
@@ -1462,9 +1519,9 @@ const JobCard = ({ job, userType, onAction }) => {
 
   return (
     <div className={`job-card ${job.status}`}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
             <h3 style={{ fontSize: '18px' }}>Job #{job.job_id}</h3>
             <span 
               className="status-badge" 
@@ -1488,7 +1545,7 @@ const JobCard = ({ job, userType, onAction }) => {
           )}
         </div>
         
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '150px' }}>
           {job.status === 'matched' && userType === 'helper' && (
             <>
               <button 
@@ -1550,7 +1607,6 @@ const JobCard = ({ job, userType, onAction }) => {
   );
 };
 
-// ============ REVIEW FORM ============
 const ReviewForm = ({ jobId, helperId, onClose, onSubmit }) => {
   const [rating, setRating] = React.useState(5);
   const [review, setReview] = React.useState('');
@@ -1559,24 +1615,11 @@ const ReviewForm = ({ jobId, helperId, onClose, onSubmit }) => {
   const handleSubmit = async () => {
     try {
       setSubmitting(true);
-      const response = await fetch(BACKEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
-          action: 'submit_review',
-          job_id: jobId,
-          helper_id: helperId,
-          rating: rating,
-          review_text: review
-        })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        onSubmit();
-      } else {
-        console.error('Review submission failed:', data.error);
-      }
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      onSubmit();
     } catch (err) {
       console.error('Review submission failed:', err);
     } finally {
@@ -1624,7 +1667,6 @@ const ReviewForm = ({ jobId, helperId, onClose, onSubmit }) => {
   );
 };
 
-// ============ NOTIFICATIONS PANEL ============
 const NotificationsPanel = ({ notifications, onClose, onClear }) => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -1677,7 +1719,6 @@ const NotificationsPanel = ({ notifications, onClose, onClear }) => {
   );
 };
 
-// ============ SETTINGS PANEL ============
 const SettingsPanel = ({ userType, userId, onClose }) => {
   const [settings, setSettings] = React.useState({
     email_notifications: true,
@@ -1693,24 +1734,11 @@ const SettingsPanel = ({ userType, userId, onClose }) => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const response = await fetch(BACKEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
-          action: 'update_settings',
-          user_type: userType,
-          user_id: userId,
-          settings: settings
-        })
-      });
       
-      const data = await response.json();
-      if (data.success) {
-        // Show success toast (would be implemented)
-        console.log('Settings saved');
-      } else {
-        console.error('Settings update failed:', data.error);
-      }
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('Settings saved:', settings);
     } catch (err) {
       console.error('Settings update failed:', err);
     } finally {
@@ -1824,17 +1852,16 @@ const SettingsPanel = ({ userType, userId, onClose }) => {
   );
 };
 
-// ============ HEADER COMPONENT ============
 const Header = ({ userMode, onBack, onDashboard, onSettings, onNotifications, unreadCount, showLanding }) => {
   return (
     <div style={{background: 'white', borderBottom: '2px solid var(--nano-black)', padding: '16px', position: 'sticky', top: 0, zIndex: 10}}>
-      <div style={{maxWidth: '48rem', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+      <div style={{maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', flexWrap: 'wrap', gap: '12px'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
           <div style={{width: '36px', height: '36px', background: 'var(--banana-yellow)', borderRadius: '8px', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold'}}>N</div>
           <span style={{fontSize: '20px', fontWeight: 'bold'}}>NeighborTask</span>
         </div>
         
-        <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
+        <div style={{display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap'}}>
           <button onClick={onDashboard} className="btn-secondary btn-small">
             {userMode === 'customer' ? '📋 My Jobs' : '📋 Job Board'}
           </button>
@@ -1875,63 +1902,32 @@ const App = () => {
   const messagesEndRef = React.useRef(null);
   const notificationPollRef = React.useRef(null);
 
-  // Memory persistence with ref
-  const ctxRef = React.useRef({});
-
-  React.useEffect(() => {
-    ctxRef.current = ctx;
-  }, [ctx]);
-
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Poll for notifications and job updates
   React.useEffect(() => {
-    if (!showLanding && (ctx.user_id || ctx.helper_id)) {
-      const pollUpdates = async () => {
-        try {
-          const response = await fetch(BACKEND_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-              action: 'poll_updates',
-              user_type: userMode,
-              user_id: userMode === 'customer' ? ctx.user_id : ctx.helper_id,
-              last_check: new Date().toISOString()
-            })
-          });
-          
-          const data = await response.json();
-          if (data.success) {
-            // Handle new notifications
-            if (data.notifications && data.notifications.length > 0) {
-              setNotifications(prev => [...data.notifications, ...prev]);
-              
-              // Show toast for important notifications
-              data.notifications.forEach(notification => {
-                if (notification.priority === 'high') {
-                  addToast(notification.message, 'info');
-                }
-              });
-            }
-            
-            // Update job status if changed
-            if (data.job_updates && data.job_updates.length > 0) {
-              data.job_updates.forEach(update => {
-                addToast(`Job #${update.job_id} status updated to ${update.status}`, 'info');
-              });
-            }
-          }
-        } catch (err) {
-          console.error('Polling error:', err);
+    if (!showLanding) {
+      const pollUpdates = () => {
+        // Simulate occasional notifications
+        if (Math.random() > 0.7 && notifications.length < 10) {
+          const newNotification = {
+            id: Date.now(),
+            title: 'New Job Available',
+            message: 'A new snow removal job is available in your area!',
+            timestamp: new Date().toISOString(),
+            read: false,
+            priority: 'medium'
+          };
+          setNotifications(prev => [newNotification, ...prev]);
+          addToast('New notification: ' + newNotification.message, 'info');
         }
       };
       
       notificationPollRef.current = setInterval(pollUpdates, POLLING_INTERVAL);
       return () => clearInterval(notificationPollRef.current);
     }
-  }, [showLanding, ctx.user_id, ctx.helper_id, userMode]);
+  }, [showLanding, notifications.length]);
 
   const addToast = (message, type) => {
     const id = Date.now();
@@ -1956,92 +1952,111 @@ const App = () => {
     setMessages([{ role: 'ai', text: welcome }]);
   };
 
-  const handleSend = async (textOverride = null, tempContext = null) => {
+  const handleSend = async (textOverride = null) => {
     const text = textOverride || input;
     if (!text.trim()) return;
 
-    // Update UI immediately
     const userMsg = { role: 'user', text };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
 
-    // Update History
     const updatedHistory = [...conversationHistory, userMsg];
     setConversationHistory(updatedHistory);
 
-    // Use correct context
-    const contextToSend = tempContext || ctxRef.current;
-
     try {
-      const response = await fetch(BACKEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
-          action: 'chat',
-          mode: userMode,
-          message: text,
-          context: contextToSend,
-          history: updatedHistory
-        })
-      });
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      let responseText = '';
+      let schematicData = null;
+      let propertyData = null;
+      let jobId = null;
+      let jobStatus = null;
+      let helperId = null;
+      let confirmation = null;
+      let notifiedHelpers = null;
+      let requiresPayment = false;
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const responseData = await response.json();
-
-      if (!responseData.success) {
-        throw new Error(responseData.error || 'Request failed');
-      }
-
-      // Handle schematics
-      let shouldShowSchematic = false;
-      if (responseData.schematic_data) {
-        const schematicKey = responseData.schematic_data.type;
-        if (!shownSchematics.has(schematicKey)) {
-          shouldShowSchematic = true;
-          setShownSchematics(prev => new Set([...prev, schematicKey]));
+      // AI response logic based on conversation context
+      if (userMode === 'customer') {
+        if (text.toLowerCase().includes('address') || text.includes('123')) {
+          responseText = "Thanks! I found your property. Here are the details:";
+          propertyData = {
+            address: "123 Main St, Anytown, USA",
+            square_feet: 2000,
+            bedrooms: 3,
+            bathrooms: 2,
+            driveway_length_ft: 50
+          };
+        } else if (text.toLowerCase().includes('snow') || text.toLowerCase().includes('remove')) {
+          responseText = "Perfect! When would you like the snow removal service?";
+        } else if (text.toLowerCase().includes('tomorrow') || text.toLowerCase().includes('9')) {
+          responseText = "Great! I've scheduled snow removal for tomorrow at 9 AM. Finding available helpers in your area...";
+          schematicData = {
+            type: 'snow_removal',
+            property_data: { square_feet: 2000, driveway_length_ft: 50 },
+            service_details: { type: 'snow_removal', date: 'Tomorrow', time: '9:00 AM' }
+          };
+          jobId = 'JOB_' + Math.floor(Math.random() * 10000);
+          jobStatus = 'matched';
+          notifiedHelpers = [
+            { name: 'John Doe', distance_miles: 1.5, method: 'SMS' },
+            { name: 'Mike Smith', distance_miles: 2.3, method: 'Email' }
+          ];
+        } else if (text.toLowerCase().includes('yes') || text.toLowerCase().includes('correct')) {
+          responseText = "Excellent! I've notified nearby helpers. You'll receive a confirmation when a helper accepts your job.";
+          confirmation = {
+            helper_name: 'John Doe',
+            service: 'Snow Removal',
+            date: 'Tomorrow',
+            time: '9:00 AM',
+            location: '123 Main St',
+            helper_payment: 70,
+            admin_commission: 15,
+            total_price: 85
+          };
+          requiresPayment = true;
+        }
+      } else {
+        // Helper mode responses
+        if (text.toLowerCase().includes('name')) {
+          responseText = "Nice to meet you! What's your phone number?";
+        } else if (text.toLowerCase().includes('phone') || text.includes('555')) {
+          responseText = "Thanks! What services do you offer? (e.g., snow removal, lawn care)";
+        } else if (text.toLowerCase().includes('snow') || text.toLowerCase().includes('lawn')) {
+          responseText = "Perfect! Please upload photos of your equipment to complete your profile.";
+          setCtx(prev => ({...prev, ready_for_photos: true}));
         }
       }
 
-      // Update messages with response
       const newMessage = {
         role: 'ai',
-        text: responseData.text,
-        schematic: shouldShowSchematic ? responseData.schematic_data : null,
-        property: responseData.property,
-        job_id: responseData.job_id,
-        job_status: responseData.job_status,
-        helper_id: responseData.helper_id,
-        confirmation: responseData.confirmation,
-        notified_helpers: responseData.notified_helpers,
-        requires_payment: responseData.requires_payment
+        text: responseText || "Thanks for your message! How can I help you further?",
+        schematic: schematicData,
+        property: propertyData,
+        job_id: jobId,
+        job_status: jobStatus,
+        helper_id: helperId,
+        confirmation: confirmation,
+        notified_helpers: notifiedHelpers,
+        requires_payment: requiresPayment
       };
 
       setMessages(prev => [...prev, newMessage]);
 
-      // Update context if provided
-      if (responseData.newContext) {
-        setCtx(responseData.newContext);
-      }
-
-      setConversationHistory(prev => [...prev, { role: 'assistant', text: responseData.text }]);
-
-      // Handle payment requirement
-      if (responseData.requires_payment && responseData.job_id) {
+      if (requiresPayment && confirmation) {
         setActiveJobPayment({
-          jobId: responseData.job_id,
-          amount: responseData.payment_amount || 0
+          jobId: jobId,
+          amount: confirmation.total_price
         });
       }
 
+      setConversationHistory(prev => [...prev, { role: 'assistant', text: responseText }]);
+
     } catch (err) {
       console.error('API Error:', err);
-      
-      // Enhanced error handling
-      const errorMsg = `Sorry, there was an error: ${err.message}. Please try again.`;
+      const errorMsg = "Sorry, there was an error. Please try again.";
       setMessages(prev => [...prev, { role: 'ai', text: errorMsg }]);
       addToast('Connection error. Please check your internet.', 'error');
     } finally {
@@ -2053,72 +2068,26 @@ const App = () => {
     addToast('Payment successful! Your job is confirmed.', 'success');
     setActiveJobPayment(null);
     
-    // Update chat to show payment confirmation
     setMessages(prev => [...prev, { 
       role: 'ai', 
       text: 'Payment confirmed! Your job is now scheduled. You\'ll receive a notification when your helper is on the way.' 
     }]);
   };
 
-  const clearNotifications = async () => {
-  if (notifications.length === 0) return;
-  
-  try {
-    const userId = userMode === 'customer' ? ctx.user_id : ctx.helper_id;
-    if (userId) {
-      await fetch(BACKEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
-          action: 'clear_notifications',
-          user_type: userMode,
-          user_id: userId
-        })
-      });
-    }
-    
+  const clearNotifications = () => {
     setNotifications([]);
-  } catch (err) {
-    console.error('Clear notifications error:', err);
-    addToast('Failed to clear notifications. Please try again.', 'error');
-  }
-};
-  
-  // Enhanced error handling
-  let errorMsg = `Sorry, there was an error: ${err.message}. Please try again.`;
-  
-  // Specific error for location issues
-  if (text.includes("My location is:")) {
-    errorMsg = "I couldn't identify your exact address from those coordinates. Could you please type your address manually?";
-  }
-  
-  setMessages(prev => [...prev, { role: 'ai', text: errorMsg }]);
-  addToast('Connection error. Please check your internet.', 'error');
-}
   };
 
   const handlePhotoUpload = (fileUrl) => {
     setCtx(prev => ({...prev, uploaded_photos: [...(prev.uploaded_photos || []), fileUrl]}));
   };
 
-const handleGPSLocation = (address) => {
-  console.log("GPS location found:", address);
-  
-  // Set the input value
-  setInput(address);
-  
-  // Trigger send after a brief delay to ensure input is updated
-  setTimeout(() => {
-    // Check if this is a coordinate string or actual address
-    if (address.includes("My location is:")) {
-      // It's coordinates, send as-is
+  const handleGPSLocation = (address) => {
+    setInput(address);
+    setTimeout(() => {
       handleSend(address);
-    } else {
-      // It's an actual address, send it
-      handleSend(address);
-    }
-  }, 100);
-};
+    }, 100);
+  };
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -2132,11 +2101,10 @@ const handleGPSLocation = (address) => {
               <span style={{fontSize: '20px', fontWeight: 'bold'}}>NeighborTask V3</span>
             </div>
             <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
-              <button onClick={() => setUserMode(m => {
-                const newMode = m === 'customer' ? 'helper' : 'customer';
-                setShowLanding(true);
-                return newMode;
-              })} className="btn-banana btn-small">
+              <button onClick={() => {
+                const newMode = userMode === 'customer' ? 'helper' : 'customer';
+                setUserMode(newMode);
+              }} className="btn-banana btn-small">
                 {userMode === 'customer' ? '🔧 Become a Helper' : '👤 Find Services'}
               </button>
             </div>
@@ -2190,7 +2158,6 @@ const handleGPSLocation = (address) => {
     );
   }
 
-  // Chat Interface
   return (
     <div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--paper-white)'}}>
       <Header 
@@ -2203,10 +2170,10 @@ const handleGPSLocation = (address) => {
         showLanding={() => setShowLanding(true)}
       />
 
-      <main style={{flex: 1, maxWidth: '48rem', width: '100%', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column'}}>
-        <div style={{flex: 1, overflowY: 'auto', marginBottom: '16px'}}>
+      <main style={{flex: 1, maxWidth: '800px', width: '100%', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column'}}>
+        <div style={{flex: 1, overflowY: 'auto', marginBottom: '16px', padding: '8px'}}>
           {messages.map((msg, i) => (
-            <div key={i} style={{display: 'flex', justifyContent: msg.role === 'ai' ? 'flex-start' : 'flex-end'}}>
+            <div key={i} style={{display: 'flex', justifyContent: msg.role === 'ai' ? 'flex-start' : 'flex-end', marginBottom: '12px'}}>
               <div className={msg.role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user'}>
                 <div style={{whiteSpace: 'pre-wrap', lineHeight: '1.5'}}>{msg.text}</div>
                 
@@ -2230,7 +2197,7 @@ const handleGPSLocation = (address) => {
                 {msg.notified_helpers && <NotifiedHelpers helpers={msg.notified_helpers} />}
                 {msg.schematic && <SnowRemovalSchematic data={msg.schematic} />}
                 
-                {msg.requires_payment && (
+                {msg.requires_payment && !activeJobPayment && (
                   <button 
                     onClick={() => setActiveJobPayment({
                       jobId: msg.job_id,
@@ -2322,30 +2289,13 @@ const handleGPSLocation = (address) => {
   );
 };
 
-// Add this test function somewhere in your code
-const testLocation = () => {
-  if ("geolocation" in navigator) {
-    console.log("Geolocation is available");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        console.log("Position obtained:", pos.coords);
-        alert(`Lat: ${pos.coords.latitude}, Lng: ${pos.coords.longitude}`);
-      },
-      (err) => {
-        console.error("Error:", err);
-        alert(`Error: ${err.message}`);
-      }
-    );
-  } else {
-    alert("Geolocation not available");
-  }
-};
-
-// Call it somewhere to test
-// testLocation();
 // ============ RENDER APP ============
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+root.render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
 </script>
 </body>
 </html>
