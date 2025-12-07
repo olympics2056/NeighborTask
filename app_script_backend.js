@@ -246,136 +246,41 @@ function buildIntelligenceContext_(message, ctx, mode) {
   
   return intelligence; // FIXED: Added return statement and closing brace
 }
-  // =============== GARAGE DETECTION =================
+  // =============== GARAGE DETECTION - FIXED =================
 
 function detectGarageType_(message, propertyData) {
   var lower = message.toLowerCase();
   
   // Check for explicit garage mentions
-  if (lower.includes('no garage') || lower.includes('no garage')) {
+  if (lower.includes('no garage') || lower.includes('none')) {
     return 'none';
   }
   
-  if (lower.includes('1 car garage') || lower.includes('single garage')) {
+  if (lower.includes('1 car garage') || lower.includes('single garage') || lower.includes('one car')) {
     return 'single';
   }
   
-  if (lower.includes('2 car garage') || lower.includes('double garage') || lower.includes('two car garage')) {
+  if (lower.includes('2 car garage') || lower.includes('double garage') || lower.includes('two car')) {
     return 'double';
   }
   
-  if (lower.includes('3 car garage') || lower.includes('triple garage') || lower.includes('three car garage')) {
+  if (lower.includes('3 car garage') || lower.includes('triple garage') || lower.includes('three car')) {
     return 'triple';
   }
   
-  // If property data has garage info, use it
-  if (propertyData && propertyData.garage_spaces) {
-    if (propertyData.garage_spaces >= 3) return 'triple';
-    if (propertyData.garage_spaces === 2) return 'double';
-    if (propertyData.garage_spaces === 1) return 'single';
-    return 'none';
-  }
-  
-  // Default detection based on property size
-  if (propertyData && propertyData.square_feet) {
-    if (propertyData.square_feet > 3000) return 'triple';
-    if (propertyData.square_feet > 2000) return 'double';
-    if (propertyData.square_feet > 1000) return 'single';
-  }
-  
-  return 'unknown';
-}
-  // 6. Determine what info is still needed
-  intelligence.missing_info = determineMissingInfo_(ctx, mode);
-  intelligence.should_ask = prioritizeQuestions_(intelligence.missing_info, ctx);
-  
-  return intelligence;
-}
-
-function determineMissingInfo_(ctx, mode) {
-  var missing = [];
-  
-  if (mode === "customer") {
-    if (!ctx.service_type) missing.push("service_type");
-    if (!ctx.property_data) missing.push("address");
-    if (!ctx.property_verified) missing.push("property_confirmation");
-        if (ctx.property_data && !ctx.garage_confirmed) {
-      var needsGarageInfo = ['snow_removal', 'house_cleaning', 'electrical', 'plumbing'];
-      if (needsGarageInfo.indexOf(ctx.service_type) !== -1) {
-        missing.push('garage_confirmation');
-      }
+  // If no explicit mention but property data exists
+  if (propertyData) {
+    if (propertyData.garage && propertyData.garage.type) {
+      return propertyData.garage.type;
     }
-    
-    // Service-specific requirements
-    if (ctx.service_type === "snow_removal") {
-      if (!ctx.snow_depth) missing.push("snow_depth");
-      if (ctx.include_walkway === undefined) missing.push("include_walkway");
-      if (ctx.include_deck === undefined) missing.push("include_deck");
-    } else if (ctx.service_type === "house_cleaning") {
-      if (ctx.has_pets === undefined) missing.push("has_pets");
-      if (ctx.bring_supplies === undefined) missing.push("bring_supplies");
-      if (ctx.cleaning_type === undefined) missing.push("cleaning_type");
-    } else if (ctx.service_type === "dog_walking") {
-      if (!ctx.dog_size) missing.push("dog_size");
-      if (!ctx.dog_temperament) missing.push("dog_temperament");
-      if (!ctx.walk_duration) missing.push("walk_duration");
-    }
-    
-    if (!ctx.service_date) missing.push("service_date");
-    if (!ctx.service_time) missing.push("service_time");
-    if (!ctx.scope_confirmed) missing.push("scope_confirmation");
-    if (!ctx.customer_name) missing.push("customer_name");
-    if (!ctx.customer_email) missing.push("customer_email");
-    if (!ctx.customer_phone) missing.push("customer_phone");
-    
-  } else if (mode === "helper") {
-    if (!ctx.helper_name) missing.push("helper_name");
-    if (!ctx.helper_email) missing.push("helper_email");
-    if (!ctx.helper_phone) missing.push("helper_phone");
-    if (!ctx.helper_whatsapp) missing.push("helper_whatsapp");
-    if (!ctx.helper_services) missing.push("services");
-    if (!ctx.helper_location) missing.push("location");
-    if (!ctx.service_radius) missing.push("service_radius");
-    if (!ctx.helper_rate) missing.push("hourly_rate");
-    if (!ctx.availability_schedule) missing.push("availability");
-    if (!ctx.equipment_photos && ctx.helper_services) {
-      var needsPhotos = false;
-      for (var i = 0; i < ctx.helper_services.length; i++) {
-        if (SERVICE_REQUIREMENTS[ctx.helper_services[i]]?.photos_required) {
-          needsPhotos = true;
-          break;
-        }
-      }
-      if (needsPhotos) missing.push("equipment_photos");
+    // Default based on property type
+    if (propertyData.property_type === 'residential') {
+      return 'double'; // Most common for residential
     }
   }
   
-  return missing;
-}
-
-function prioritizeQuestions_(missingInfo, ctx) {
-  if (missingInfo.length === 0) return [];
-  
-  var priorities = {
-    "service_type": 1,
-    "address": 2,
-    "property_confirmation": 3,
-    "service_date": 4,
-    "service_time": 5,
-    "helper_name": 1,
-    "helper_email": 2,
-    "helper_phone": 3,
-    "helper_whatsapp": 4,
-    "services": 5,
-    "location": 6
-  };
-  
-  return missingInfo.sort(function(a, b) {
-    return (priorities[a] || 99) - (priorities[b] || 99);
-  }).slice(0, 1);
-}
-
-// =============== CUSTOMER CONVERSATION HANDLER =================
+  return null;
+} // FIXED: Properly closed function
 
 // =============== CUSTOMER CONVERSATION HANDLER =================
 
