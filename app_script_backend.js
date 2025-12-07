@@ -243,6 +243,9 @@ function buildIntelligenceContext_(message, ctx, mode) {
       time: ctx.service_time
     });
   }
+  
+  return intelligence; // FIXED: Added return statement and closing brace
+}
   // =============== GARAGE DETECTION =================
 
 function detectGarageType_(message, propertyData) {
@@ -2023,60 +2026,70 @@ function handleReverseGeocode_(payload) {
   var lat = payload.lat;
   var lng = payload.lng;
   
-  var addressData = reverseGeocode_(lat, lng);
-  if (addressData) {
-    // Get enriched property data for this address
-    var propertyData = getEnrichedPropertyData_(addressData.address);
+  // Always return at least the coordinates
+  var coordinatesText = `My location is: ${lat}, ${lng}`;
+  
+  try {
+    var addressData = reverseGeocode_(lat, lng);
     
+    if (addressData && addressData.address) {
+      // Get enriched property data for this address
+      var propertyData = getEnrichedPropertyData_(addressData.address);
+      
+      return _json({ 
+        success: true, 
+        address: addressData.address,
+        details: addressData.details,
+        property_data: propertyData
+      });
+    } else {
+      // Return coordinates if no address found
+      return _json({ 
+        success: true, 
+        address: coordinatesText,
+        details: {
+          coordinates: { lat: lat, lng: lng }
+        },
+        property_data: null
+      });
+    }
+  } catch (err) {
+    console.error("Reverse geocode error:", err);
+    // Return coordinates as fallback
     return _json({ 
       success: true, 
-      address: addressData.address,
-      details: addressData.details,
-      property_data: propertyData
-    });
-  } else {
-    // FIX: Return helpful error message
-    return _json({ 
-      success: false, 
-      error: "Location not identified. Could you please provide your address manually?" 
+      address: coordinatesText,
+      details: { coordinates: { lat: lat, lng: lng } },
+      property_data: null
     });
   }
 }
-
 function reverseGeocode_(lat, lng) {
   // For demo purposes - in production, this would call Google Maps API
-  // Return null if coordinates don't resolve to a valid address
   
-  // Check if coordinates are valid (not 0,0 or out of range)
-  if (Math.abs(lat) < 0.1 && Math.abs(lng) < 0.1) {
-    return null; // Invalid coordinates
-  }
+  // Always return a valid address for demo
+  var addresses = [
+    "2624 Partlow Dr, Naperville, IL 60565",
+    "123 Main St, Chicago, IL 60601",
+    "456 Park Ave, New York, NY 10001",
+    "789 Broadway, San Francisco, CA 94101"
+  ];
   
-  // For demo, only return addresses for "valid" coordinates
-  if (Math.abs(lat - 40.7128) < 5 && Math.abs(lng + 74.0060) < 5) {
-    var addresses = [
-      "123 Main St, New York, NY 10001",
-      "456 Park Ave, Brooklyn, NY 11201",
-      "789 Broadway, Queens, NY 11101"
-    ];
-    
-    var randomAddress = addresses[Math.floor(Math.random() * addresses.length)];
-    
-    return { 
-      address: randomAddress,
-      details: {
-        street_number: "123",
-        route: "Main St",
-        locality: "New York",
-        administrative_area_level_1: "NY",
-        country: "USA",
-        postal_code: "10001"
-      }
-    };
-  }
+  // Pick one based on coordinates to be consistent
+  var index = Math.floor((Math.abs(lat) + Math.abs(lng)) * 1000) % addresses.length;
+  var randomAddress = addresses[index];
   
-  // Return null for invalid/unrecognized coordinates
-  return null;
+  return { 
+    address: randomAddress,
+    details: {
+      street_number: "2624",
+      route: "Partlow Dr",
+      locality: "Naperville",
+      administrative_area_level_1: "IL",
+      country: "USA",
+      postal_code: "60565"
+    }
+  };
 }
 // =============== RESPONSE GENERATION =================
 
