@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NeighborTask - Your Neighborhood Service Platform</title>
+<title>NeighborTask V3 - Complete Platform</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://js.stripe.com/v3/"></script>
 <style>
 :root {
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -16,10 +17,275 @@
   --blue: #3B82F6;
   --green: #10B981;
   --purple: #8B5CF6;
+  --orange: #F59E0B;
+  --red: #EF4444;
+  --gray-100: #F9FAFB;
+  --gray-200: #E5E7EB;
+  --gray-300: #D1D5DB;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: var(--font-sans); background: var(--paper-white); color: var(--nano-black); }
+
+
+/* V3 ADDITIONS */
+.notification-bell {
+  position: relative;
+  cursor: pointer;
+}
+
+.notification-count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--red);
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 16px 24px;
+  background: var(--nano-black);
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1000;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.payment-form {
+  background: white;
+  border: 2px solid var(--nano-black);
+  border-radius: 16px;
+  padding: 24px;
+  margin: 16px 0;
+}
+
+.payment-element {
+  margin: 20px 0;
+}
+
+.stripe-card {
+  padding: 20px;
+  border: 2px solid var(--gray-200);
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+.tab-container {
+  display: flex;
+  border-bottom: 2px solid var(--gray-200);
+  margin-bottom: 24px;
+}
+
+.tab {
+  padding: 12px 24px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--gray-300);
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+}
+
+.tab.active {
+  color: var(--nano-black);
+  border-bottom: 3px solid var(--banana-yellow);
+}
+
+.job-card {
+  background: white;
+  border: 2px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 16px 0;
+  transition: all 0.2s;
+}
+
+.job-card:hover {
+  border-color: var(--banana-yellow);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.job-card.accepted {
+  border-left: 4px solid var(--green);
+}
+
+.job-card.pending {
+  border-left: 4px solid var(--orange);
+}
+
+.job-card.completed {
+  border-left: 4px solid var(--purple);
+}
+
+.rating-stars {
+  display: flex;
+  gap: 4px;
+}
+
+.star {
+  color: var(--gray-200);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.star.filled {
+  color: var(--orange);
+}
+
+.review-form {
+  background: var(--gray-100);
+  padding: 20px;
+  border-radius: 12px;
+  margin: 16px 0;
+}
+
+.review-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border: 2px solid var(--gray-200);
+  border-radius: 8px;
+  font-family: inherit;
+  resize: vertical;
+  margin: 12px 0;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.settings-panel {
+  background: white;
+  border: 2px solid var(--nano-black);
+  border-radius: 16px;
+  padding: 32px;
+  margin: 24px auto;
+  max-width: 800px;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--gray-300);
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: var(--green);
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--gray-200);
+  border-radius: 50%;
+  border-top-color: var(--banana-yellow);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-message {
+  background: #FEF2F2;
+  border: 2px solid var(--red);
+  color: #991B1B;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+
+.success-message {
+  background: #F0FDF4;
+  border: 2px solid var(--green);
+  color: #065F46;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 12px 0;
+}
 
 .btn-banana { 
   background: var(--banana-yellow); 
@@ -35,6 +301,32 @@ body { font-family: var(--font-sans); background: var(--paper-white); color: var
 .btn-banana:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--nano-black); }
 .btn-banana:hover { background: #FFD700; }
 .btn-small { padding: 8px 16px; font-size: 14px; }
+
+.btn-success { 
+  background: var(--green); 
+  color: white; 
+  border: 2px solid var(--nano-black); 
+  box-shadow: 4px 4px 0 var(--nano-black); 
+  cursor: pointer; 
+  transition: all 0.1s; 
+  font-weight: 600; 
+  padding: 12px 24px; 
+  border-radius: 8px; 
+}
+.btn-success:hover { background: #059669; }
+
+.btn-secondary { 
+  background: white; 
+  color: var(--nano-black); 
+  border: 2px solid var(--nano-black); 
+  box-shadow: 4px 4px 0 var(--nano-black); 
+  cursor: pointer; 
+  transition: all 0.1s; 
+  font-weight: 600; 
+  padding: 12px 24px; 
+  border-radius: 8px; 
+}
+.btn-secondary:hover { background: #F3F4F6; }
 
 .card-nano { 
   background: white; 
@@ -87,10 +379,59 @@ body { font-family: var(--font-sans); background: var(--paper-white); color: var
 
 .confirmation-box { 
   margin: 12px 0; 
-  padding: 12px; 
+  padding: 16px; 
   background: #F0F9FF; 
   border: 2px solid #3B82F6; 
   border-radius: 8px; 
+}
+
+.pricing-breakdown {
+  margin: 16px 0;
+  padding: 16px;
+  background: #F0FDF4;
+  border: 2px solid #10B981;
+  border-radius: 8px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  margin: 8px 0;
+}
+
+.status-submitted { background: #FEF3C7; color: #92400E; }
+.status-matched { background: #DBEAFE; color: #1E40AF; }
+.status-confirmed { background: #D1FAE5; color: #065F46; }
+.status-completed { background: #E9D5FF; color: #6B21A8; }
+
+.notification-card {
+  margin: 16px 0;
+  padding: 16px;
+  background: #FEF9C3;
+  border: 2px solid #CA8A04;
+  border-radius: 8px;
+}
+
+.helper-list {
+  margin: 16px 0;
+  padding: 16px;
+  background: white;
+  border: 2px solid var(--nano-black);
+  border-radius: 8px;
+}
+
+.helper-item {
+  padding: 12px;
+  margin: 8px 0;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .upload-area { 
@@ -107,6 +448,16 @@ body { font-family: var(--font-sans); background: var(--paper-white); color: var
 
 .job-id-badge { 
   background: #10B981; 
+  color: white; 
+  padding: 8px 16px; 
+  border-radius: 8px; 
+  font-weight: bold; 
+  display: inline-block; 
+  margin: 8px 0; 
+}
+
+.helper-id-badge { 
+  background: #8B5CF6; 
   color: white; 
   padding: 8px 16px; 
   border-radius: 8px; 
@@ -259,452 +610,474 @@ body { font-family: var(--font-sans); background: var(--paper-white); color: var
 
 .community-section {
   padding: 60px 20px;
-  background: white;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.community-stats {
+.stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 24px;
-  max-width: 900px;
-  margin: 0 auto;
+  margin-top: 48px;
 }
 
 .stat-card {
   text-align: center;
   padding: 24px;
+  background: white;
+  border: 2px solid var(--nano-black);
+  border-radius: 12px;
 }
 
 .stat-number {
-  font-size: 48px;
+  font-size: 36px;
   font-weight: 800;
-  color: var(--blue);
-  margin-bottom: 8px;
+  color: var(--banana-yellow);
+  text-shadow: 2px 2px 0 var(--nano-black);
 }
 
 .stat-label {
-  font-size: 16px;
+  font-size: 14px;
   color: #666;
+  margin-top: 8px;
 }
 
-.cta-section {
+.footer {
   background: var(--nano-black);
   color: white;
-  padding: 60px 20px;
+  padding: 40px 20px;
   text-align: center;
 }
 
-.cta-title {
-  font-size: 32px;
-  font-weight: 700;
-  margin-bottom: 16px;
+.footer-links {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  margin-bottom: 24px;
 }
 
-.cta-subtitle {
-  font-size: 18px;
-  margin-bottom: 32px;
-  opacity: 0.9;
-}
-
-/* HELPER MODE STYLES */
-.helper-hero {
-  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+.footer-link {
   color: white;
+  text-decoration: none;
+  opacity: 0.8;
+  transition: opacity 0.2s;
 }
 
-.helper-service-card {
-  border-color: #10B981;
-}
-
-.helper-service-card:hover {
-  border-color: #059669;
-}
-
-.earnings-highlight {
-  background: #D1FAE5;
-  border: 2px solid #10B981;
-  border-radius: 12px;
-  padding: 24px;
-  margin: 32px auto;
-  max-width: 600px;
-  text-align: center;
-}
-
-.earnings-number {
-  font-size: 42px;
-  font-weight: 800;
-  color: #059669;
-  margin-bottom: 8px;
-}
-
-.earnings-label {
-  font-size: 16px;
-  color: #065F46;
+.footer-link:hover {
+  opacity: 1;
 }
 </style>
 </head>
 <body>
 <div id="root"></div>
+
 <script type="text/babel">
-const { useState, useEffect, useRef } = React;
-
+// ============ CONFIGURATION ============
 const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzAc3VpS1aO1VLWRXdkoHwMMuCaqV7nIya1BUNx5SgM0hG-5Zpl6G6XyLCNhfOt5k4F4A/exec";
+const STRIPE_PUBLIC_KEY = "pk_test_51SXaIyJdqxYyOXHA4cwgGo1XWwBbaUxS695Mn8VeryOCriUbYI40GPSNFTWs81QRZTrI1QU1lwWS0SlYgGKNQhMO00CKMFPHVU";
+const POLLING_INTERVAL = 10000;
 
-// ============ SERVICE DATA ============
-const SERVICES = [
-  {
-    id: 'snow_removal',
-    name: 'Snow Removal',
-    icon: '❄️',
-    description: 'Driveway, walkway, and deck snow clearing',
-    priceRange: '$50-100',
-    category: 'Outdoor'
-  },
-  {
-    id: 'lawn_care',
-    name: 'Lawn Care',
-    icon: '🌱',
-    description: 'Mowing, trimming, edging, and cleanup',
-    priceRange: '$40-80',
-    category: 'Outdoor'
-  },
-  {
-    id: 'house_cleaning',
-    name: 'House Cleaning',
-    icon: '✨',
-    description: 'Deep cleaning, regular maintenance',
-    priceRange: '$80-160',
-    category: 'Indoor'
-  },
-  {
-    id: 'dog_walking',
-    name: 'Dog Walking',
-    icon: '🐕',
-    description: 'Daily walks, pet sitting, play time',
-    priceRange: '$20-40',
-    category: 'Pets'
-  },
-  {
-    id: 'electrical',
-    name: 'Electrical Work',
-    icon: '⚡',
-    description: 'Licensed electrician services',
-    priceRange: '$100-200',
-    category: 'Professional'
-  },
-  {
-    id: 'plumbing',
-    name: 'Plumbing',
-    icon: '🔧',
-    description: 'Licensed plumber for repairs',
-    priceRange: '$100-200',
-    category: 'Professional'
-  },
-  {
-    id: 'holiday_lights',
-    name: 'Holiday Lights',
-    icon: '🎄',
-    description: 'Installation and removal',
-    priceRange: '$150-400',
-    category: 'Seasonal'
-  },
-  {
-    id: 'moving_help',
-    name: 'Moving Help',
-    icon: '📦',
-    description: 'Packing, loading, furniture moving',
-    priceRange: '$60-120',
-    category: 'Labor'
-  }
-];
+// ============ UTILITIES ============
+const Toast = ({ message, type = 'info', onClose }) => {
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (onClose) onClose();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
-// ============ LANDING PAGE COMPONENT ============
-const LandingPage = ({ onStartBooking, mode }) => {
-  const isHelper = mode === 'helper';
-  
-  const customerSteps = [
-    {
-      number: '1',
-      title: 'Tell Us What You Need',
-      description: 'Chat with our AI to describe your service needs',
-      icon: '💬'
-    },
-    {
-      number: '2',
-      title: 'Smart Property Analysis',
-      description: 'We analyze your property and provide accurate pricing',
-      icon: '🏠'
-    },
-    {
-      number: '3',
-      title: 'Get Matched Instantly',
-      description: 'Top-rated helpers nearby get notified within seconds',
-      icon: '⚡'
-    },
-    {
-      number: '4',
-      title: 'Job Done Right',
-      description: 'Track progress, pay securely, rate your helper',
-      icon: '✅'
-    }
-  ];
-  
-  const helperSteps = [
-    {
-      number: '1',
-      title: 'Create Your Profile',
-      description: 'Tell us about your skills, equipment, and availability',
-      icon: '👤'
-    },
-    {
-      number: '2',
-      title: 'Get Verified',
-      description: 'Upload equipment photos and certifications',
-      icon: '✓'
-    },
-    {
-      number: '3',
-      title: 'Receive Jobs',
-      description: 'Get SMS notifications for jobs in your area',
-      icon: '📱'
-    },
-    {
-      number: '4',
-      title: 'Earn Money',
-      description: 'Complete jobs, get paid, build your reputation',
-      icon: '💰'
-    }
-  ];
-  
-  const steps = isHelper ? helperSteps : customerSteps;
-  
   return (
-    <div className="landing-page">
-      {/* Hero Section */}
-      <div className={isHelper ? 'hero-section helper-hero' : 'hero-section'}>
-        <div className="hero-title">
-          {isHelper ? '🔧 Earn Money Helping Neighbors' : '⚡ NeighborTask'}
-        </div>
-        <div className="hero-subtitle">
-          {isHelper 
-            ? 'Turn your skills into income. Set your own schedule.' 
-            : 'Your neighborhood service platform - Powered by AI'}
-        </div>
-        {isHelper && (
-          <div className="earnings-highlight">
-            <div className="earnings-number">$500-2,000/mo</div>
-            <div className="earnings-label">Average helper earnings (part-time)</div>
-          </div>
-        )}
-        <div className="hero-buttons">
-          <button className="btn-banana" style={{padding: '16px 32px', fontSize: '18px'}} onClick={() => onStartBooking()}>
-            {isHelper ? '🚀 Become a Helper' : '🎯 Book a Service'}
-          </button>
-        </div>
-      </div>
+    <div className="toast" style={{ 
+      background: type === 'error' ? 'var(--red)' : 
+                  type === 'success' ? 'var(--green)' : 'var(--nano-black)' 
+    }}>
+      {message}
+    </div>
+  );
+};
 
-      {/* Services Grid */}
-      <div style={{padding: '60px 20px', background: 'white'}}>
-        <div className="section-title">
-          {isHelper ? '📋 Services You Can Offer' : '🛠️ Our Services'}
-        </div>
-        <div className="service-grid">
-          {SERVICES.map(service => (
-            <div 
-              key={service.id} 
-              className={isHelper ? 'service-card helper-service-card' : 'service-card'}
-              onClick={() => onStartBooking(service.id)}
-            >
-              <span className="service-icon">{service.icon}</span>
-              <div className="service-name">{service.name}</div>
-              <div className="service-description">{service.description}</div>
-              <div className="service-price">
-                {isHelper ? `Earn ${service.priceRange}/job` : service.priceRange}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+const LoadingSpinner = ({ size = 20 }) => (
+  <div className="loading-spinner" style={{ width: size, height: size }}></div>
+);
 
-      {/* How It Works */}
-      <div className="how-it-works">
-        <div className="section-title">
-          {isHelper ? '💼 How It Works for Helpers' : '🚀 How It Works'}
-        </div>
-        <div className="steps-container">
-          {steps.map((step, index) => (
-            <div key={index} className="step-card">
-              <div className="step-number">{step.number}</div>
-              <div style={{fontSize: '48px', marginBottom: '12px'}}>{step.icon}</div>
-              <div className="step-title">{step.title}</div>
-              <div className="step-description">{step.description}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Community Stats */}
-      <div className="community-section">
-        <div className="section-title">
-          {isHelper ? '📊 Join Our Growing Community' : '🌟 Trusted by Your Neighbors'}
-        </div>
-        <div className="community-stats">
-          <div className="stat-card">
-            <div className="stat-number">1,247</div>
-            <div className="stat-label">
-              {isHelper ? 'Active Helpers' : 'Happy Customers'}
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">3,892</div>
-            <div className="stat-label">Jobs Completed</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">4.9★</div>
-            <div className="stat-label">Average Rating</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">24hrs</div>
-            <div className="stat-label">Avg Response Time</div>
-          </div>
-        </div>
-        
-        {/* Community Illustration */}
-        <div style={{maxWidth: '800px', margin: '48px auto', textAlign: 'center'}}>
-          <svg viewBox="0 0 800 300" style={{width: '100%', height: 'auto'}}>
-            {/* Houses */}
-            <rect x="50" y="150" width="100" height="80" fill="#E5E7EB" stroke="#1f2937" strokeWidth="2"/>
-            <polygon points="100,150 40,150 100,100 160,150" fill="#8B7355" stroke="#1f2937" strokeWidth="2"/>
-            <rect x="250" y="140" width="120" height="90" fill="#E5E7EB" stroke="#1f2937" strokeWidth="2"/>
-            <polygon points="310,140 235,140 310,80 385,140" fill="#8B7355" stroke="#1f2937" strokeWidth="2"/>
-            <rect x="450" y="155" width="110" height="75" fill="#E5E7EB" stroke="#1f2937" strokeWidth="2"/>
-            <polygon points="505,155 440,155 505,105 570,155" fill="#8B7355" stroke="#1f2937" strokeWidth="2"/>
-            
-            {/* People helping */}
-            <circle cx="180" cy="200" r="15" fill="#FFE135"/>
-            <text x="180" y="207" textAnchor="middle" fontSize="20">🧹</text>
-            
-            <circle cx="400" cy="195" r="15" fill="#10B981"/>
-            <text x="400" y="202" textAnchor="middle" fontSize="20">⚡</text>
-            
-            <circle cx="590" cy="205" r="15" fill="#3B82F6"/>
-            <text x="590" y="212" textAnchor="middle" fontSize="20">🌱</text>
-            
-            {/* Connection lines */}
-            <line x1="100" y1="230" x2="180" y2="215" stroke="#FFE135" strokeWidth="3" strokeDasharray="5,5"/>
-            <line x1="310" y1="230" x2="400" y2="210" stroke="#10B981" strokeWidth="3" strokeDasharray="5,5"/>
-            <line x1="505" y1="230" x2="590" y2="220" stroke="#3B82F6" strokeWidth="3" strokeDasharray="5,5"/>
-            
-            {/* Label */}
-            <text x="400" y="270" textAnchor="middle" fontSize="18" fontWeight="bold" fill="#1f2937">
-              Connecting neighbors who need help with neighbors who can help
-            </text>
-          </svg>
-        </div>
-      </div>
-
-      {/* CTA Section */}
-      <div className="cta-section">
-        <div className="cta-title">
-          {isHelper ? 'Ready to Start Earning?' : 'Need Help Today?'}
-        </div>
-        <div className="cta-subtitle">
-          {isHelper 
-            ? 'Join hundreds of helpers earning extra income in your community' 
-            : 'Get matched with top-rated helpers in minutes'}
-        </div>
-        <button className="btn-banana" style={{padding: '16px 32px', fontSize: '18px'}} onClick={() => onStartBooking()}>
-          {isHelper ? 'Create Helper Profile' : 'Get Started Now'}
+const ErrorMessage = ({ message, onRetry }) => (
+  <div className="error-message">
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <span>{message}</span>
+      {onRetry && (
+        <button onClick={onRetry} className="btn-banana btn-small" style={{ padding: '4px 12px' }}>
+          Retry
         </button>
-      </div>
-    </div>
-  );
-};
-
-// ============ EXISTING SCHEMATIC COMPONENTS ============
-const SnowRemovalSchematic = ({ data }) => {
-  const { driveway_length, garage_spaces, include_walkway, walkway_length, include_deck, snow_depth } = data.scope;
-  return (
-    <div className="schematic-card" style={{borderColor: '#93C5FD', background: '#EFF6FF'}}>
-      <div style={{fontSize: '14px', fontWeight: 'bold', color: '#1E40AF', marginBottom: '8px', textAlign: 'center'}}>
-        ❄️ SNOW REMOVAL SCOPE
-      </div>
-      <div style={{padding: '10px', background: '#DBEAFE', borderRadius: '8px', fontSize: '13px'}}>
-        <div>{garage_spaces}-car driveway ({driveway_length} ft)</div>
-        {include_walkway && <div>+ Walkway ({walkway_length} ft)</div>}
-        {include_deck && <div>+ Deck</div>}
-        <div>Snow depth: {snow_depth} inches</div>
-      </div>
-    </div>
-  );
-};
-
-const PropertyConfirmation = ({ property, onConfirm, onEdit }) => (
-  <div className="confirmation-box">
-    <div style={{fontSize: '13px', fontWeight: 'bold', color: '#1E40AF', marginBottom: '10px'}}>
-      🏠 Confirm: {property.address}
-    </div>
-    <div style={{fontSize: '12px', marginBottom: '12px'}}>
-      {property.bedrooms} bed / {property.bathrooms} bath • {property.square_feet} sq ft
-    </div>
-    <div style={{display: 'flex', gap: '8px'}}>
-      <button onClick={onConfirm} className="btn-banana btn-small" style={{flex: 1}}>✅ Correct</button>
-      <button onClick={onEdit} className="btn-small" style={{flex: 1, background: 'white', border: '2px solid #E5E7EB', borderRadius: '8px', cursor: 'pointer'}}>✏️ Edit</button>
+      )}
     </div>
   </div>
 );
 
-const PhotoUpload = ({ onUpload, userId, userType, photoType, label }) => {
-  const fileInputRef = useRef(null);
-  const [uploading, setUploading] = useState(false);
+// ============ COMPONENTS ============
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
+const LandingPage = ({ onStartBooking, mode }) => {
+  const services = [
+    { id: 'snow_removal', icon: '❄️', name: 'Snow Removal', description: 'Driveway and walkway clearing', price: 'From $30' },
+    { id: 'lawn_care', icon: '🌱', name: 'Lawn Care', description: 'Mowing, trimming, and maintenance', price: 'From $25' },
+    { id: 'house_cleaning', icon: '🧹', name: 'House Cleaning', description: 'Professional home cleaning services', price: 'From $60' },
+    { id: 'dog_walking', icon: '🐕', name: 'Dog Walking', description: 'Daily walks and pet care', price: 'From $20' },
+    { id: 'electrical', icon: '⚡', name: 'Electrical', description: 'Licensed electrical services', price: 'From $75' },
+    { id: 'plumbing', icon: '🔧', name: 'Plumbing', description: 'Professional plumbing repairs', price: 'From $85' },
+    { id: 'holiday_lights', icon: '🎄', name: 'Holiday Lights', description: 'Installation and removal', price: 'From $100' }
+  ];
+
+  const helperSteps = [
+    { number: 1, title: 'Sign Up', description: 'Create your helper profile in minutes' },
+    { number: 2, title: 'Get Verified', description: 'Upload equipment photos and certifications' },
+    { number: 3, title: 'Receive Jobs', description: 'Get notified of jobs in your area' },
+    { number: 4, title: 'Earn Money', description: 'Complete jobs and get paid quickly' }
+  ];
+
+  const customerSteps = [
+    { number: 1, title: 'Choose Service', description: 'Select from our available services' },
+    { number: 2, title: 'Book Online', description: 'Chat with AI to schedule your service' },
+    { number: 3, title: 'Get Matched', description: 'We find the best helper near you' },
+    { number: 4, title: 'Job Done', description: 'Relax while we handle the work' }
+  ];
+
+  return (
+    <div className="landing-page">
+      <div className="hero-section">
+        <h1 className="hero-title">
+          {mode === 'customer' ? 'Get Help from Your Neighbors' : 'Earn Money Helping Neighbors'}
+        </h1>
+        <p className="hero-subtitle">
+          {mode === 'customer' 
+            ? 'Book trusted local services in seconds with AI-powered matching' 
+            : 'Join our network of verified helpers and start earning today'}
+        </p>
+        <div className="hero-buttons">
+          {mode === 'customer' ? (
+            <>
+              <button onClick={() => onStartBooking()} className="btn-banana">
+                Book a Service
+              </button>
+              <button className="btn-secondary">Learn More</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => onStartBooking()} className="btn-banana">
+                Become a Helper
+              </button>
+              <button className="btn-secondary">View Requirements</button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {mode === 'customer' && (
+        <div className="service-grid">
+          {services.map(service => (
+            <div key={service.id} className="service-card" onClick={() => onStartBooking(service.id)}>
+              <span className="service-icon">{service.icon}</span>
+              <h3 className="service-name">{service.name}</h3>
+              <p className="service-description">{service.description}</p>
+              <p className="service-price">{service.price}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="how-it-works">
+        <h2 className="section-title">How It Works</h2>
+        <div className="steps-container">
+          {(mode === 'customer' ? customerSteps : helperSteps).map(step => (
+            <div key={step.number} className="step-card">
+              <div className="step-number">{step.number}</div>
+              <h3 className="step-title">{step.title}</h3>
+              <p className="step-description">{step.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="community-section">
+        <h2 className="section-title">Join Our Growing Community</h2>
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-number">5,000+</div>
+            <div className="stat-label">Happy Customers</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">500+</div>
+            <div className="stat-label">Verified Helpers</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">10,000+</div>
+            <div className="stat-label">Jobs Completed</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">4.8⭐</div>
+            <div className="stat-label">Average Rating</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="footer">
+        <div className="footer-links">
+          <a href="#" className="footer-link">About</a>
+          <a href="#" className="footer-link">Terms</a>
+          <a href="#" className="footer-link">Privacy</a>
+          <a href="#" className="footer-link">Contact</a>
+        </div>
+        <p>&copy; 2024 NeighborTask. All rights reserved.</p>
+      </div>
+    </div>
+  );
+};
+
+const PropertyConfirmation = ({ property, onConfirm, onEdit }) => {
+  return (
+    <div className="confirmation-box">
+      <h4 style={{marginBottom: '12px', fontSize: '16px', fontWeight: '600'}}>📍 Property Details</h4>
+      <div style={{fontSize: '14px', lineHeight: '1.6'}}>
+        <p><strong>Address:</strong> {property.address}</p>
+        {property.square_feet && <p><strong>Size:</strong> {property.square_feet} sq ft</p>}
+        {property.bedrooms && <p><strong>Bedrooms:</strong> {property.bedrooms}</p>}
+        {property.bathrooms && <p><strong>Bathrooms:</strong> {property.bathrooms}</p>}
+        {property.driveway_length_ft && <p><strong>Driveway:</strong> {property.driveway_length_ft} ft</p>}
+      </div>
+      <div style={{display: 'flex', gap: '8px', marginTop: '12px'}}>
+        <button onClick={onConfirm} className="btn-success btn-small">✓ Correct</button>
+        <button onClick={onEdit} className="btn-secondary btn-small">✗ Edit Address</button>
+      </div>
+    </div>
+  );
+};
+
+const JobConfirmation = ({ details }) => {
+  return (
+    <div className="pricing-breakdown">
+      <h4 style={{marginBottom: '12px', fontSize: '18px', fontWeight: '600'}}>✅ Job Confirmed!</h4>
+      <div style={{fontSize: '14px', lineHeight: '1.8'}}>
+        <p><strong>Helper:</strong> {details.helper_name}</p>
+        <p><strong>Service:</strong> {details.service}</p>
+        <p><strong>Date:</strong> {details.date}</p>
+        <p><strong>Time:</strong> {details.time}</p>
+        <p><strong>Location:</strong> {details.location}</p>
+        <hr style={{margin: '12px 0', border: 'none', borderTop: '1px dashed #10B981'}} />
+        <p style={{fontSize: '16px', fontWeight: '600'}}>💰 Pricing Breakdown:</p>
+        <p>Service cost: ${details.helper_payment}</p>
+        <p>Service fee: ${details.admin_commission}</p>
+        <p style={{fontSize: '18px', fontWeight: '700', color: '#065F46'}}>
+          TOTAL: ${details.total_price}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const NotifiedHelpers = ({ helpers }) => {
+  return (
+    <div className="notification-card">
+      <h4 style={{marginBottom: '12px', fontSize: '16px', fontWeight: '600'}}>
+        🔔 Helpers Notified
+      </h4>
+      <div className="helper-list">
+        {helpers.map((helper, i) => (
+          <div key={i} className="helper-item">
+            <div>
+              <strong>{helper.name}</strong>
+              <span style={{marginLeft: '8px', color: '#666', fontSize: '14px'}}>
+                ({helper.distance_miles} miles away)
+              </span>
+            </div>
+            <span style={{fontSize: '12px', color: '#059669'}}>
+              ✓ Notified via {helper.method}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p style={{fontSize: '14px', marginTop: '12px', color: '#666'}}>
+        You'll receive confirmation once a helper accepts.
+      </p>
+    </div>
+  );
+};
+
+const JobStatus = ({ status }) => {
+  const statusStyles = {
+    submitted: 'status-submitted',
+    matched: 'status-matched', 
+    confirmed: 'status-confirmed',
+    completed: 'status-completed'
+  };
+
+  const statusLabels = {
+    submitted: '📝 Submitted',
+    matched: '🔍 Finding Helper',
+    confirmed: '✅ Confirmed',
+    completed: '🎉 Completed'
+  };
+
+  return (
+    <div className={`status-badge ${statusStyles[status] || ''}`}>
+      {statusLabels[status] || status}
+    </div>
+  );
+};
+
+const SnowRemovalSchematic = ({ data }) => {
+  return (
+    <div className="schematic-card" style={{borderColor: '#3B82F6', background: '#EFF6FF'}}>
+      <h4 style={{marginBottom: '12px', fontSize: '16px', fontWeight: '600'}}>🏠 Property Layout</h4>
+      {data.map_image ? (
+        <img src={data.map_image} alt="Property Map" style={{width: '100%', borderRadius: '8px', marginBottom: '12px'}} />
+      ) : (
+        <svg viewBox="0 0 400 300" style={{width: '100%', maxWidth: '400px'}}>
+          <rect x="50" y="50" width="300" height="200" fill="#E5E7EB" stroke="#1F2937" strokeWidth="2"/>
+          <rect x="150" y="180" width="100" height="70" fill="#FFE135" stroke="#1F2937" strokeWidth="2"/>
+          <text x="200" y="220" textAnchor="middle" fontSize="14" fontWeight="600">Driveway</text>
+          <text x="200" y="235" textAnchor="middle" fontSize="12">{data.property_data?.driveway_length_ft || 50} ft</text>
+          <rect x="100" y="50" width="200" height="130" fill="#DBEAFE" stroke="#1F2937" strokeWidth="2"/>
+          <text x="200" y="115" textAnchor="middle" fontSize="14">House</text>
+          <text x="200" y="130" textAnchor="middle" fontSize="12">{data.property_data?.square_feet || 2000} sq ft</text>
+        </svg>
+      )}
+      <div style={{marginTop: '12px', padding: '8px', background: 'white', borderRadius: '6px', fontSize: '14px'}}>
+        <p><strong>Service Details:</strong></p>
+        <p>• Type: {data.service_details?.type?.replace(/_/g, ' ')}</p>
+        <p>• Date: {data.service_details?.date}</p>
+        <p>• Time: {data.service_details?.time}</p>
+      </div>
+    </div>
+  );
+};
+
+const PhotoUpload = ({ onUpload, userId, userType, photoType, label, multiple = false }) => {
+  const [uploading, setUploading] = React.useState(false);
+  const [uploaded, setUploaded] = React.useState([]);
+  const [error, setError] = React.useState(null);
+
+  const handleFileSelect = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
     setUploading(true);
+    setError(null);
+
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64Data = event.target.result.split(',')[1];
+      for (const file of files) {
+        // Convert file to base64
+        const reader = new FileReader();
+        const base64 = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result.split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        // Upload to backend
         const response = await fetch(BACKEND_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
-            action: 'upload_equipment_photo',
+            action: 'upload_photo',
             user_id: userId,
             user_type: userType,
             photo_type: photoType,
-            photo_data: base64Data,
-            file_name: file.name
+            file_name: file.name,
+            file_data: base64,
+            mime_type: file.type
           })
         });
+
         const data = await response.json();
         if (data.success) {
-          onUpload(data.file_url);
-          alert('Photo uploaded!');
+          const newUpload = {
+            url: data.file_url || URL.createObjectURL(file),
+            name: file.name,
+            size: file.size
+          };
+          setUploaded(prev => [...prev, newUpload]);
+          onUpload(newUpload);
         } else {
-          alert('Upload failed: ' + data.error);
+          setError('Upload failed: ' + data.error);
         }
-        setUploading(false);
-      };
-      reader.readAsDataURL(file);
+      }
     } catch (err) {
-      alert('Error: ' + err.message);
+      setError('Upload failed. Please try again.');
+      console.error('Upload error:', err);
+    } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div className="upload-area" onClick={() => fileInputRef.current?.click()}>
-      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} />
-      {uploading ? <div>Uploading...</div> : (
-        <div>
-          <div style={{fontSize: '32px', marginBottom: '8px'}}>📸</div>
-          <div style={{fontWeight: 'bold'}}>{label || 'Upload photo'}</div>
+    <div>
+      <label className="upload-area">
+        <input 
+          type="file" 
+          onChange={handleFileSelect} 
+          accept="image/*" 
+          disabled={uploading}
+          multiple={multiple}
+        />
+        {uploading ? (
+          <div>
+            <LoadingSpinner />
+            <p style={{ marginTop: '8px' }}>Uploading...</p>
+          </div>
+        ) : (
+          <div>
+            <span style={{ fontSize: '32px' }}>📸</span>
+            <p style={{ marginTop: '8px', fontWeight: '600' }}>{label}</p>
+            <p style={{ fontSize: '12px', color: '#666' }}>
+              {multiple ? 'Click to select multiple photos' : 'Click to select or drag & drop'}
+            </p>
+          </div>
+        )}
+      </label>
+      
+      {error && <ErrorMessage message={error} />}
+      
+      {uploaded.length > 0 && (
+        <div style={{ marginTop: '12px' }}>
+          <p style={{ fontSize: '14px', marginBottom: '8px', color: '#666' }}>
+            Uploaded ({uploaded.length}):
+          </p>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {uploaded.map((upload, i) => (
+              <div key={i} style={{ position: 'relative' }}>
+                <img 
+                  src={upload.url} 
+                  alt={upload.name}
+                  style={{ 
+                    width: '80px', 
+                    height: '80px', 
+                    objectFit: 'cover', 
+                    borderRadius: '8px', 
+                    border: '2px solid var(--gray-200)' 
+                  }} 
+                />
+                <button
+                  onClick={() => {
+                    const newUploaded = uploaded.filter((_, index) => index !== i);
+                    setUploaded(newUploaded);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '-8px',
+                    right: '-8px',
+                    background: 'var(--red)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '20px',
+                    height: '20px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -712,135 +1085,833 @@ const PhotoUpload = ({ onUpload, userId, userType, photoType, label }) => {
 };
 
 const LocationButton = ({ onLocationFound, isLoading }) => {
-  const [locating, setLocating] = useState(false);
+  const [locating, setLocating] = React.useState(false);
 
-  const handleClick = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
-      return;
-    }
-
+  const handleLocation = () => {
+    if (locating || isLoading) return;
+    
     setLocating(true);
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          // 1. Get Coordinates from Browser
-          const { latitude, longitude } = position.coords;
+    
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
           
-          // 2. Ask Backend to translate to Address (Reverse Geocode)
-          const response = await fetch(BACKEND_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-              action: 'reverse_geocode',
-              lat: latitude,
-              lng: longitude
-            })
-          });
-          
-          const data = await response.json();
-          
-          if (data.success) {
-            onLocationFound(data.address);
-          } else {
-            alert("Could not determine address: " + data.error);
+          try {
+            const response = await fetch(BACKEND_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain' },
+              body: JSON.stringify({
+                action: 'reverse_geocode',
+                lat: lat,
+                lng: lng
+              })
+            }).then(r => r.json());
+            
+            if (response.success && response.address) {
+              onLocationFound(response.address);
+            }
+          } catch (err) {
+            console.error("Geocoding error:", err);
+            onLocationFound(`My location is: ${lat}, ${lng}`);
           }
-        } catch (error) {
-          console.error(error);
-          alert("Error getting location");
-        } finally {
+          
           setLocating(false);
-        }
-      },
-      (error) => {
-        alert("Unable to retrieve your location. Please allow location access.");
-        setLocating(false);
-      }
-    );
+        },
+        (error) => {
+          console.error("Location error:", error);
+          setLocating(false);
+          alert("Unable to get location. Please type your address.");
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      setLocating(false);
+      alert("Location services not available");
+    }
   };
 
   return (
-    <button 
-      onClick={handleClick} 
+    <button
+      onClick={handleLocation}
       disabled={locating || isLoading}
-      className="btn-small"
       style={{
-        background: '#E0F2FE', 
-        color: '#0284C7', 
-        border: '1px solid #0284C7',
-        borderRadius: '20px',
-        padding: '8px 12px',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        marginBottom: '10px',
-        alignSelf: 'flex-end',
+        padding: '8px 16px',
+        marginBottom: '8px',
+        background: locating ? '#E5E7EB' : '#F3F4F6',
+        border: '1px solid #D1D5DB',
+        borderRadius: '6px',
+        cursor: locating || isLoading ? 'not-allowed' : 'pointer',
         fontSize: '12px'
       }}
     >
-      {locating ? <span className="loader-dot"></span> : '📍'}
+      {locating ? <LoadingSpinner size={12} /> : '📍'}
       {locating ? 'Locating...' : 'Use My Current Location'}
     </button>
   );
 };
 
+// ============ PAYMENT FORM ============
+const PaymentForm = ({ amount, jobId, onSuccess, onCancel }) => {
+  const [stripe, setStripe] = React.useState(null);
+  const [elements, setElements] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+  const [cardElement, setCardElement] = React.useState(null);
+
+  React.useEffect(() => {
+    if (STRIPE_PUBLIC_KEY && window.Stripe && !stripe) {
+      const stripeInstance = window.Stripe(STRIPE_PUBLIC_KEY);
+      setStripe(stripeInstance);
+      
+      // Create card element
+      const elements = stripeInstance.elements();
+      const card = elements.create('card', {
+        style: {
+          base: {
+            fontSize: '16px',
+            color: '#32325d',
+            fontFamily: 'var(--font-sans)',
+          }
+        }
+      });
+      setCardElement(card);
+      card.mount('#card-element');
+    }
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !cardElement) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Create payment intent on backend
+      const response = await fetch(BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'create_payment_intent',
+          job_id: jobId,
+          amount: Math.round(amount * 100)
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Payment failed to initialize');
+      }
+
+      // Confirm payment with Stripe
+      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(data.clientSecret, {
+        payment_method: {
+          card: cardElement
+        }
+      });
+
+      if (stripeError) {
+        setError(stripeError.message);
+      } else if (paymentIntent.status === 'succeeded') {
+        onSuccess(paymentIntent);
+      }
+    } catch (err) {
+      setError(err.message || 'Payment failed. Please try again.');
+      console.error('Payment error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="payment-form">
+      <h3 style={{ marginBottom: '16px' }}>Payment Details</h3>
+      <p style={{ marginBottom: '20px', color: '#666' }}>
+        Amount: <strong>${amount.toFixed(2)}</strong>
+      </p>
+      
+      {error && <ErrorMessage message={error} />}
+      
+      <form onSubmit={handleSubmit}>
+        <div className="stripe-card">
+          <div id="card-element"></div>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+          <button 
+            type="submit" 
+            className="btn-success" 
+            disabled={!stripe || loading}
+          >
+            {loading ? <LoadingSpinner /> : `Pay $${amount.toFixed(2)}`}
+          </button>
+          <button 
+            type="button" 
+            onClick={onCancel} 
+            className="btn-secondary"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+// ============ JOB DASHBOARD ============
+const JobDashboard = ({ userId, userType, onBack }) => {
+  const [jobs, setJobs] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+  const [activeTab, setActiveTab] = React.useState('active');
+
+  const fetchJobs = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'get_user_jobs',
+          user_id: userId,
+          user_type: userType,
+          status: activeTab === 'active' ? ['submitted', 'matched', 'confirmed'] : 
+                 activeTab === 'completed' ? ['completed'] : ['cancelled']
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setJobs(data.jobs || []);
+      } else {
+        setError(data.error || 'Failed to load jobs');
+      }
+    } catch (err) {
+      setError('Failed to load jobs. Please check your connection.');
+      console.error('Fetch jobs error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, userType, activeTab]);
+
+  React.useEffect(() => {
+    fetchJobs();
+    // Poll for updates
+    const interval = setInterval(fetchJobs, POLLING_INTERVAL);
+    return () => clearInterval(interval);
+  }, [fetchJobs]);
+
+  const handleJobAction = async (jobId, action) => {
+    try {
+      const response = await fetch(BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'job_action',
+          job_id: jobId,
+          user_type: userType,
+          user_id: userId,
+          action: action
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        fetchJobs(); // Refresh list
+      } else {
+        console.error('Job action failed:', data.error);
+      }
+    } catch (err) {
+      console.error('Job action failed:', err);
+    }
+  };
+
+  if (loading && jobs.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '40px' }}>
+        <LoadingSpinner size={40} />
+        <p style={{ marginTop: '16px', color: '#666' }}>Loading jobs...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <h2>{userType === 'customer' ? 'My Jobs' : 'Available Jobs'}</h2>
+        <button onClick={onBack} className="btn-secondary">← Back to Chat</button>
+      </div>
+
+      {error && <ErrorMessage message={error} onRetry={fetchJobs} />}
+
+      <div className="tab-container">
+        <button 
+          className={`tab ${activeTab === 'active' ? 'active' : ''}`}
+          onClick={() => setActiveTab('active')}
+        >
+          Active Jobs
+        </button>
+        <button 
+          className={`tab ${activeTab === 'completed' ? 'active' : ''}`}
+          onClick={() => setActiveTab('completed')}
+        >
+          Completed
+        </button>
+        <button 
+          className={`tab ${activeTab === 'cancelled' ? 'active' : ''}`}
+          onClick={() => setActiveTab('cancelled')}
+        >
+          Cancelled
+        </button>
+      </div>
+
+      {jobs.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+          <p>No jobs found in this category.</p>
+        </div>
+      ) : (
+        jobs.map(job => (
+          <JobCard 
+            key={job.job_id}
+            job={job}
+            userType={userType}
+            onAction={handleJobAction}
+          />
+        ))
+      )}
+    </div>
+  );
+};
+
+// ============ JOB CARD ============
+const JobCard = ({ job, userType, onAction }) => {
+  const [showReview, setShowReview] = React.useState(false);
+  
+  const getStatusColor = (status) => {
+    const colors = {
+      submitted: 'var(--orange)',
+      matched: 'var(--blue)',
+      confirmed: 'var(--green)',
+      completed: 'var(--purple)',
+      cancelled: 'var(--red)'
+    };
+    return colors[status] || 'var(--gray-300)';
+  };
+
+  return (
+    <div className={`job-card ${job.status}`}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <h3 style={{ fontSize: '18px' }}>Job #{job.job_id}</h3>
+            <span 
+              className="status-badge" 
+              style={{ background: getStatusColor(job.status) }}
+            >
+              {job.status ? job.status.charAt(0).toUpperCase() + job.status.slice(1) : 'Unknown'}
+            </span>
+          </div>
+          
+          <p><strong>Service:</strong> {job.service_type?.replace(/_/g, ' ') || 'Unknown'}</p>
+          <p><strong>Location:</strong> {job.property_address || 'Not specified'}</p>
+          <p><strong>Scheduled:</strong> {job.service_date || 'Not set'} at {job.service_time || 'Not set'}</p>
+          <p><strong>Price:</strong> ${parseFloat(job.total_price || 0).toFixed(2)}</p>
+          
+          {userType === 'customer' && job.assigned_helper && (
+            <p><strong>Helper:</strong> {job.helper_name || 'Helper'} ({job.helper_rating || 'New'}) ⭐</p>
+          )}
+          
+          {userType === 'helper' && job.customer_name && (
+            <p><strong>Customer:</strong> {job.customer_name}</p>
+          )}
+        </div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {job.status === 'matched' && userType === 'helper' && (
+            <>
+              <button 
+                onClick={() => onAction(job.job_id, 'accept')}
+                className="btn-success btn-small"
+              >
+                Accept Job
+              </button>
+              <button 
+                onClick={() => onAction(job.job_id, 'decline')}
+                className="btn-secondary btn-small"
+              >
+                Decline
+              </button>
+            </>
+          )}
+          
+          {job.status === 'confirmed' && userType === 'customer' && !job.payment_completed && (
+            <button 
+              onClick={() => onAction(job.job_id, 'pay')}
+              className="btn-success btn-small"
+            >
+              Pay Now
+            </button>
+          )}
+          
+          {job.status === 'confirmed' && userType === 'helper' && (
+            <button 
+              onClick={() => onAction(job.job_id, 'complete')}
+              className="btn-success btn-small"
+            >
+              Mark Complete
+            </button>
+          )}
+          
+          {job.status === 'completed' && !job.customer_rating && userType === 'customer' && (
+            <button 
+              onClick={() => setShowReview(true)}
+              className="btn-banana btn-small"
+            >
+              Leave Review
+            </button>
+          )}
+        </div>
+      </div>
+      
+      {showReview && (
+        <ReviewForm 
+          jobId={job.job_id}
+          helperId={job.assigned_helper}
+          onClose={() => setShowReview(false)}
+          onSubmit={() => {
+            setShowReview(false);
+            onAction(job.job_id, 'reviewed');
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// ============ REVIEW FORM ============
+const ReviewForm = ({ jobId, helperId, onClose, onSubmit }) => {
+  const [rating, setRating] = React.useState(5);
+  const [review, setReview] = React.useState('');
+  const [submitting, setSubmitting] = React.useState(false);
+
+  const handleSubmit = async () => {
+    try {
+      setSubmitting(true);
+      const response = await fetch(BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'submit_review',
+          job_id: jobId,
+          helper_id: helperId,
+          rating: rating,
+          review_text: review
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        onSubmit();
+      } else {
+        console.error('Review submission failed:', data.error);
+      }
+    } catch (err) {
+      console.error('Review submission failed:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="review-form">
+      <h4>Leave a Review</h4>
+      <div className="rating-stars" style={{ margin: '12px 0' }}>
+        {[1, 2, 3, 4, 5].map(star => (
+          <span 
+            key={star}
+            className={`star ${star <= rating ? 'filled' : ''}`}
+            onClick={() => setRating(star)}
+            style={{ cursor: 'pointer' }}
+          >
+            ★
+          </span>
+        ))}
+      </div>
+      <textarea
+        className="review-textarea"
+        placeholder="Share your experience..."
+        value={review}
+        onChange={(e) => setReview(e.target.value)}
+      />
+      <div style={{ display: 'flex', gap: '12px' }}>
+        <button 
+          onClick={handleSubmit}
+          className="btn-success"
+          disabled={submitting}
+        >
+          {submitting ? <LoadingSpinner /> : 'Submit Review'}
+        </button>
+        <button 
+          onClick={onClose}
+          className="btn-secondary"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ============ NOTIFICATIONS PANEL ============
+const NotificationsPanel = ({ notifications, onClose, onClear }) => {
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <h3>Notifications {unreadCount > 0 && `(${unreadCount})`}</h3>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button onClick={onClear} className="btn-secondary btn-small">
+              Clear All
+            </button>
+            <button onClick={onClose} className="btn-secondary btn-small">
+              Close
+            </button>
+          </div>
+        </div>
+        
+        {notifications.length === 0 ? (
+          <p style={{ textAlign: 'center', color: '#666', padding: '40px' }}>
+            No notifications
+          </p>
+        ) : (
+          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            {notifications.map((notification, index) => (
+              <div 
+                key={index}
+                style={{
+                  padding: '16px',
+                  background: notification.read ? 'white' : '#F0F9FF',
+                  border: '1px solid var(--gray-200)',
+                  borderRadius: '8px',
+                  marginBottom: '8px',
+                  opacity: notification.read ? 0.8 : 1
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <strong>{notification.title}</strong>
+                  <span style={{ fontSize: '12px', color: '#666' }}>
+                    {new Date(notification.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+                <p style={{ marginTop: '8px', fontSize: '14px' }}>{notification.message}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ============ SETTINGS PANEL ============
+const SettingsPanel = ({ userType, userId, onClose }) => {
+  const [settings, setSettings] = React.useState({
+    email_notifications: true,
+    sms_notifications: true,
+    whatsapp_notifications: true,
+    auto_accept_jobs: false,
+    service_radius: 10,
+    hourly_rate: userType === 'helper' ? 50 : null
+  });
+
+  const [saving, setSaving] = React.useState(false);
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const response = await fetch(BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'update_settings',
+          user_type: userType,
+          user_id: userId,
+          settings: settings
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        // Show success toast (would be implemented)
+        console.log('Settings saved');
+      } else {
+        console.error('Settings update failed:', data.error);
+      }
+    } catch (err) {
+      console.error('Settings update failed:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="settings-panel">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <h2>Settings</h2>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button onClick={handleSave} className="btn-success" disabled={saving}>
+            {saving ? <LoadingSpinner /> : 'Save Changes'}
+          </button>
+          <button onClick={onClose} className="btn-secondary">Close</button>
+        </div>
+      </div>
+
+      <div className="setting-item">
+        <div>
+          <strong>Email Notifications</strong>
+          <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>Receive job updates via email</p>
+        </div>
+        <label className="toggle-switch">
+          <input 
+            type="checkbox" 
+            checked={settings.email_notifications}
+            onChange={(e) => setSettings({...settings, email_notifications: e.target.checked})}
+          />
+          <span className="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div className="setting-item">
+        <div>
+          <strong>SMS Notifications</strong>
+          <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>Receive job updates via SMS</p>
+        </div>
+        <label className="toggle-switch">
+          <input 
+            type="checkbox" 
+            checked={settings.sms_notifications}
+            onChange={(e) => setSettings({...settings, sms_notifications: e.target.checked})}
+          />
+          <span className="toggle-slider"></span>
+        </label>
+      </div>
+
+      {userType === 'helper' && (
+        <>
+          <div className="setting-item">
+            <div>
+              <strong>Auto-Accept Jobs</strong>
+              <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>Automatically accept jobs within your criteria</p>
+            </div>
+            <label className="toggle-switch">
+              <input 
+                type="checkbox" 
+                checked={settings.auto_accept_jobs}
+                onChange={(e) => setSettings({...settings, auto_accept_jobs: e.target.checked})}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div className="setting-item">
+            <div>
+              <strong>Service Radius</strong>
+              <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>Maximum distance to travel for jobs</p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <input 
+                type="range" 
+                min="5" 
+                max="50" 
+                value={settings.service_radius}
+                onChange={(e) => setSettings({...settings, service_radius: parseInt(e.target.value)})}
+                style={{ width: '200px' }}
+              />
+              <span>{settings.service_radius} miles</span>
+            </div>
+          </div>
+
+          <div className="setting-item">
+            <div>
+              <strong>Hourly Rate</strong>
+              <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>Your standard hourly rate</p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>$</span>
+              <input 
+                type="number" 
+                value={settings.hourly_rate}
+                onChange={(e) => setSettings({...settings, hourly_rate: parseInt(e.target.value) || 50})}
+                style={{ 
+                  width: '80px', 
+                  padding: '8px', 
+                  border: '2px solid var(--gray-200)', 
+                  borderRadius: '4px' 
+                }}
+                min="15"
+                max="200"
+              />
+              <span>/hour</span>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ============ HEADER COMPONENT ============
+const Header = ({ userMode, onBack, onDashboard, onSettings, onNotifications, unreadCount, showLanding }) => {
+  return (
+    <div style={{background: 'white', borderBottom: '2px solid var(--nano-black)', padding: '16px', position: 'sticky', top: 0, zIndex: 10}}>
+      <div style={{maxWidth: '48rem', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <div style={{width: '36px', height: '36px', background: 'var(--banana-yellow)', borderRadius: '8px', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold'}}>N</div>
+          <span style={{fontSize: '20px', fontWeight: 'bold'}}>NeighborTask</span>
+        </div>
+        
+        <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
+          <button onClick={onDashboard} className="btn-secondary btn-small">
+            {userMode === 'customer' ? '📋 My Jobs' : '📋 Job Board'}
+          </button>
+          
+          <button onClick={onSettings} className="btn-secondary btn-small">
+            ⚙️ Settings
+          </button>
+          
+          <div className="notification-bell" onClick={onNotifications}>
+            🔔
+            {unreadCount > 0 && <span className="notification-count">{unreadCount}</span>}
+          </div>
+          
+          <button onClick={showLanding} className="btn-banana btn-small">🏠 Home</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ============ MAIN APP ============
 const App = () => {
-  const [userMode, setUserMode] = useState('customer');
-  const [showLanding, setShowLanding] = useState(true);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [ctx, setCtx] = useState({});
-  const [conversationHistory, setConversationHistory] = useState([]);
-  const [shownSchematics, setShownSchematics] = useState(new Set());
-  const messagesEndRef = useRef(null);
+  const [userMode, setUserMode] = React.useState('customer');
+  const [showLanding, setShowLanding] = React.useState(true);
+  const [messages, setMessages] = React.useState([]);
+  const [input, setInput] = React.useState("");
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [ctx, setCtx] = React.useState({});
+  const [conversationHistory, setConversationHistory] = React.useState([]);
+  const [shownSchematics, setShownSchematics] = React.useState(new Set());
+  const [notifications, setNotifications] = React.useState([]);
+  const [showNotifications, setShowNotifications] = React.useState(false);
+  const [showDashboard, setShowDashboard] = React.useState(false);
+  const [showSettings, setShowSettings] = React.useState(false);
+  const [activeJobPayment, setActiveJobPayment] = React.useState(null);
+  const [toasts, setToasts] = React.useState([]);
+  
+  const messagesEndRef = React.useRef(null);
+  const notificationPollRef = React.useRef(null);
 
-  // --- MEMORY PERSISTENCE FIX ---
-  // Create a Reference to track context instantly
-  const ctxRef = useRef({});
+  // Memory persistence with ref
+  const ctxRef = React.useRef({});
 
-  // Keep ctxRef in sync with ctx state
-  useEffect(() => {
+  React.useEffect(() => {
     ctxRef.current = ctx;
   }, [ctx]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Poll for notifications and job updates
+  React.useEffect(() => {
+    if (!showLanding && (ctx.user_id || ctx.helper_id)) {
+      const pollUpdates = async () => {
+        try {
+          const response = await fetch(BACKEND_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+              action: 'poll_updates',
+              user_type: userMode,
+              user_id: userMode === 'customer' ? ctx.user_id : ctx.helper_id,
+              last_check: new Date().toISOString()
+            })
+          });
+          
+          const data = await response.json();
+          if (data.success) {
+            // Handle new notifications
+            if (data.notifications && data.notifications.length > 0) {
+              setNotifications(prev => [...data.notifications, ...prev]);
+              
+              // Show toast for important notifications
+              data.notifications.forEach(notification => {
+                if (notification.priority === 'high') {
+                  addToast(notification.message, 'info');
+                }
+              });
+            }
+            
+            // Update job status if changed
+            if (data.job_updates && data.job_updates.length > 0) {
+              data.job_updates.forEach(update => {
+                addToast(`Job #${update.job_id} status updated to ${update.status}`, 'info');
+              });
+            }
+          }
+        } catch (err) {
+          console.error('Polling error:', err);
+        }
+      };
+      
+      notificationPollRef.current = setInterval(pollUpdates, POLLING_INTERVAL);
+      return () => clearInterval(notificationPollRef.current);
+    }
+  }, [showLanding, ctx.user_id, ctx.helper_id, userMode]);
+
+  const addToast = (message, type) => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(toast => toast.id !== id));
+    }, 3000);
+  };
+
   const startBooking = (serviceId = null) => {
     setShowLanding(false);
+    setShowDashboard(false);
+    setShowSettings(false);
     setCtx(serviceId ? {service_type: serviceId} : {});
     setConversationHistory([]);
     setShownSchematics(new Set());
     
     const welcome = userMode === 'customer'
-      ? (serviceId ? `Great! Let's book ${serviceId.replace('_', ' ')}. What's your address?` : "What service do you need?")
+      ? (serviceId ? `Great! Let's book ${serviceId.replace(/_/g, ' ')}. What's your address?` : "What service do you need?")
       : "Let's set up your helper profile. What's your full name?";
     
     setMessages([{ role: 'ai', text: welcome }]);
   };
 
-  // --- CORRECTED HANDLE SEND FUNCTION ---
   const handleSend = async (textOverride = null, tempContext = null) => {
     const text = textOverride || input;
     if (!text.trim()) return;
 
-    // 1. Update UI immediately
+    // Update UI immediately
     const userMsg = { role: 'user', text };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
 
-    // 2. Update History
+    // Update History
     const updatedHistory = [...conversationHistory, userMsg];
     setConversationHistory(updatedHistory);
 
-    // 3. DETERMINE THE CORRECT CONTEXT TO SEND
-    // If a button provided a tempContext (like "Correct"), use that. 
-    // Otherwise use the live Ref (for typing).
+    // Use correct context
     const contextToSend = tempContext || ctxRef.current;
 
     try {
@@ -851,92 +1922,136 @@ const App = () => {
           action: 'chat',
           mode: userMode,
           message: text,
-          context: contextToSend, // <--- CRITICAL FIX: Sends the correct memory
+          context: contextToSend,
           history: updatedHistory
         })
-      }).then(r => r.json());
+      });
 
-      // 4. Handle Visuals (Schematics)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const responseData = await response.json();
+
+      if (!responseData.success) {
+        throw new Error(responseData.error || 'Request failed');
+      }
+
+      // Handle schematics
       let shouldShowSchematic = false;
-      if (response.schematic_data) {
-        const schematicKey = response.schematic_data.type;
+      if (responseData.schematic_data) {
+        const schematicKey = responseData.schematic_data.type;
         if (!shownSchematics.has(schematicKey)) {
           shouldShowSchematic = true;
           setShownSchematics(prev => new Set([...prev, schematicKey]));
         }
       }
 
-      // 5. Update Messages with AI Response
-      setMessages(prev => [...prev, {
+      // Update messages with response
+      const newMessage = {
         role: 'ai',
-        text: response.text,
-        schematic: shouldShowSchematic ? response.schematic_data : null,
-        property: response.property,
-        job_id: response.job_id,
-        helper_id: response.helper_id
-      }]);
+        text: responseData.text,
+        schematic: shouldShowSchematic ? responseData.schematic_data : null,
+        property: responseData.property,
+        job_id: responseData.job_id,
+        job_status: responseData.job_status,
+        helper_id: responseData.helper_id,
+        confirmation: responseData.confirmation,
+        notified_helpers: responseData.notified_helpers,
+        requires_payment: responseData.requires_payment
+      };
 
-      // 6. Update Context (Memory) if backend sends updates
-      if (response.newContext) {
-        setCtx(response.newContext);
+      setMessages(prev => [...prev, newMessage]);
+
+      // Update context if provided
+      if (responseData.newContext) {
+        setCtx(responseData.newContext);
       }
 
-      setConversationHistory(prev => [...prev, { role: 'assistant', text: response.text }]);
+      setConversationHistory(prev => [...prev, { role: 'assistant', text: responseData.text }]);
+
+      // Handle payment requirement
+      if (responseData.requires_payment && responseData.job_id) {
+        setActiveJobPayment({
+          jobId: responseData.job_id,
+          amount: responseData.payment_amount || 0
+        });
+      }
 
     } catch (err) {
-      console.error(err);
-      // Fallback for demo/offline testing
-      const mock = mockResponse(text, userMode, contextToSend);
-      setMessages(prev => [...prev, { role: 'ai', text: "Backend Error (Using Mock): " + mock.text }]);
-      if (mock.newContext) setCtx(mock.newContext);
+      console.error('API Error:', err);
+      
+      // Enhanced error handling
+      const errorMsg = `Sorry, there was an error: ${err.message}. Please try again.`;
+      setMessages(prev => [...prev, { role: 'ai', text: errorMsg }]);
+      addToast('Connection error. Please check your internet.', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const mockResponse = (msg, mode, context) => {
-    if (mode === 'helper') {
-      if (!context.helper_name) return { text: "What's your email and phone?", newContext: {...context} };
-      return { text: "What services can you provide?", newContext: {...context} };
+  const handlePaymentSuccess = (paymentIntent) => {
+    addToast('Payment successful! Your job is confirmed.', 'success');
+    setActiveJobPayment(null);
+    
+    // Update chat to show payment confirmation
+    setMessages(prev => [...prev, { 
+      role: 'ai', 
+      text: 'Payment confirmed! Your job is now scheduled. You\'ll receive a notification when your helper is on the way.' 
+    }]);
+  };
+
+  const clearNotifications = async () => {
+    if (notifications.length === 0) return;
+    
+    try {
+      const userId = userMode === 'customer' ? ctx.user_id : ctx.helper_id;
+      if (userId) {
+        await fetch(BACKEND_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'clear_notifications',
+            user_type: userMode,
+            user_id: userId
+          })
+        });
+      }
+      
+      setNotifications([]);
+    } catch (err) {
+      console.error('Failed to clear notifications:', err);
     }
-    const low = msg.toLowerCase();
-    if (low.includes('snow')) {
-      return {
-        text: "Found property at 123 Main St. Correct?",
-        property: { address: '123 Main St', driveway_length_ft: 80, garage_spaces: 2, square_feet: 2000, bedrooms: 3, bathrooms: 2, stories: 1 },
-        newContext: {...context, service_type: 'snow_removal'}
-      };
-    }
-    return { text: "What service do you need?", newContext: {...context} };
   };
 
   const handlePhotoUpload = (fileUrl) => {
     setCtx(prev => ({...prev, uploaded_photos: [...(prev.uploaded_photos || []), fileUrl]}));
   };
 
-
-  // PASTE THIS HERE:
   const handleGPSLocation = (address) => {
     setInput(address);
   };
 
+  const unreadCount = notifications.filter(n => !n.read).length;
+
   if (showLanding) {
     return (
       <div>
-        {/* Header */}
         <div style={{background: 'white', borderBottom: '2px solid var(--nano-black)', padding: '16px', position: 'sticky', top: 0, zIndex: 10}}>
           <div style={{maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px'}}>
             <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
               <div style={{width: '36px', height: '36px', background: 'var(--banana-yellow)', borderRadius: '8px', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold'}}>N</div>
-              <span style={{fontSize: '20px', fontWeight: 'bold'}}>NeighborTask</span>
+              <span style={{fontSize: '20px', fontWeight: 'bold'}}>NeighborTask V3</span>
             </div>
-            <button onClick={() => setUserMode(m => {
-              const newMode = m === 'customer' ? 'helper' : 'customer';
-              setShowLanding(true);
-              return newMode;
-            })} className="btn-banana btn-small">
-              {userMode === 'customer' ? '🔧 Become a Helper' : '👤 Find Services'}
-            </button>
+            <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
+              <button onClick={() => setUserMode(m => {
+                const newMode = m === 'customer' ? 'helper' : 'customer';
+                setShowLanding(true);
+                return newMode;
+              })} className="btn-banana btn-small">
+                {userMode === 'customer' ? '🔧 Become a Helper' : '👤 Find Services'}
+              </button>
+            </div>
           </div>
         </div>
         
@@ -945,20 +2060,60 @@ const App = () => {
     );
   }
 
+  if (showDashboard) {
+    return (
+      <div style={{minHeight: '100vh', background: 'var(--paper-white)'}}>
+        <Header 
+          userMode={userMode}
+          onBack={() => setShowDashboard(false)}
+          onSettings={() => setShowSettings(true)}
+          onNotifications={() => setShowNotifications(true)}
+          unreadCount={unreadCount}
+          showLanding={() => setShowLanding(true)}
+        />
+        <div style={{maxWidth: '1200px', margin: '0 auto', padding: '24px'}}>
+          <JobDashboard 
+            userId={userMode === 'customer' ? ctx.user_id : ctx.helper_id}
+            userType={userMode}
+            onBack={() => setShowDashboard(false)}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (showSettings) {
+    return (
+      <div style={{minHeight: '100vh', background: 'var(--paper-white)'}}>
+        <Header 
+          userMode={userMode}
+          onBack={() => setShowSettings(false)}
+          onDashboard={() => setShowDashboard(true)}
+          onNotifications={() => setShowNotifications(true)}
+          unreadCount={unreadCount}
+          showLanding={() => setShowLanding(true)}
+        />
+        <SettingsPanel 
+          userType={userMode}
+          userId={userMode === 'customer' ? ctx.user_id : ctx.helper_id}
+          onClose={() => setShowSettings(false)}
+        />
+      </div>
+    );
+  }
+
   // Chat Interface
   return (
     <div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--paper-white)'}}>
-      <div style={{background: 'white', borderBottom: '2px solid var(--nano-black)', padding: '16px', position: 'sticky', top: 0, zIndex: 10}}>
-        <div style={{maxWidth: '48rem', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-            <div style={{width: '36px', height: '36px', background: 'var(--banana-yellow)', borderRadius: '8px', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold'}}>N</div>
-            <span style={{fontSize: '20px', fontWeight: 'bold'}}>NeighborTask</span>
-          </div>
-          <div style={{display: 'flex', gap: '8px'}}>
-            <button onClick={() => setShowLanding(true)} className="btn-banana btn-small">← Back</button>
-          </div>
-        </div>
-      </div>
+      <Header 
+        userMode={userMode}
+        onBack={() => setShowLanding(true)}
+        onDashboard={() => setShowDashboard(true)}
+        onSettings={() => setShowSettings(true)}
+        onNotifications={() => setShowNotifications(true)}
+        unreadCount={unreadCount}
+        showLanding={() => setShowLanding(true)}
+      />
 
       <main style={{flex: 1, maxWidth: '48rem', width: '100%', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column'}}>
         <div style={{flex: 1, overflowY: 'auto', marginBottom: '16px'}}>
@@ -966,23 +2121,39 @@ const App = () => {
             <div key={i} style={{display: 'flex', justifyContent: msg.role === 'ai' ? 'flex-start' : 'flex-end'}}>
               <div className={msg.role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user'}>
                 <div style={{whiteSpace: 'pre-wrap', lineHeight: '1.5'}}>{msg.text}</div>
-                {msg.job_id && <div className="job-id-badge">Job #{msg.job_id}</div>}
-                {msg.helper_id && <div className="job-id-badge">Helper #{msg.helper_id}</div>}
                 
-                {/* --- CORRECTED PROPERTY CONFIRMATION LOGIC --- */}
+                {msg.job_id && <div className="job-id-badge">Job #{msg.job_id}</div>}
+                {msg.helper_id && <div className="helper-id-badge">Helper #{msg.helper_id}</div>}
+                {msg.job_status && <JobStatus status={msg.job_status} />}
+                
                 {msg.property && !ctx.property_verified && (
                   <PropertyConfirmation
                     property={msg.property}
                     onConfirm={() => {
-                      const newCtx = {...ctx, property_verified: true}; 
-                      setCtx(newCtx); 
-                      handleSend("yes", newCtx); 
+                      const newCtx = {...ctx, property_verified: true, property_data: msg.property};
+                      setCtx(newCtx);
+                      handleSend("yes", newCtx);
                     }}
                     onEdit={() => setMessages(prev => [...prev, {role: 'ai', text: 'What is the correct address?'}])}
                   />
                 )}
                 
-                {msg.schematic?.type === 'snow_removal_schematic' && <SnowRemovalSchematic data={msg.schematic} />}
+                {msg.confirmation && <JobConfirmation details={msg.confirmation} />}
+                {msg.notified_helpers && <NotifiedHelpers helpers={msg.notified_helpers} />}
+                {msg.schematic && <SnowRemovalSchematic data={msg.schematic} />}
+                
+                {msg.requires_payment && (
+                  <button 
+                    onClick={() => setActiveJobPayment({
+                      jobId: msg.job_id,
+                      amount: msg.confirmation?.total_price || 0
+                    })}
+                    className="btn-success"
+                    style={{marginTop: '12px'}}
+                  >
+                    💳 Pay Now (${msg.confirmation?.total_price || 0})
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -990,32 +2161,39 @@ const App = () => {
           {isLoading && (
             <div style={{display: 'flex'}}>
               <div className="chat-bubble-ai">
-                <div className="loader-dot"></div>
-                <div className="loader-dot"></div>
-                <div className="loader-dot"></div>
+                <LoadingSpinner />
+                <p style={{marginTop: '8px', fontSize: '14px', color: '#666'}}>Thinking...</p>
               </div>
             </div>
           )}
 
-          {(ctx.ready_for_matching || ctx.helper_services) && (
+          {(ctx.ready_for_photos || ctx.ready_for_matching) && (
             <div style={{margin: '16px 0'}}>
               <PhotoUpload
                 onUpload={handlePhotoUpload}
                 userId={ctx.job_id || ctx.helper_id || "temp_" + Date.now()}
                 userType={userMode}
                 photoType={userMode === 'helper' ? 'equipment' : 'property'}
-                label={userMode === 'helper' ? 'Upload Equipment Photo' : 'Upload Property Photo (optional)'}
+                label={userMode === 'helper' ? 'Upload Equipment Photos' : 'Upload Property Photos (optional)'}
+                multiple={userMode === 'helper'}
               />
             </div>
           )}
 
+          {activeJobPayment && (
+            <PaymentForm
+              amount={activeJobPayment.amount}
+              jobId={activeJobPayment.jobId}
+              onSuccess={handlePaymentSuccess}
+              onCancel={() => setActiveJobPayment(null)}
+            />
+          )}
+
           <div ref={messagesEndRef} />
         </div>
+
         <LocationButton onLocationFound={handleGPSLocation} isLoading={isLoading} />
 
-        <div className="card-nano" style={{padding: '8px', display: 'flex', gap: '8px'}}>
-          <input
-            value={input}
         <div className="card-nano" style={{padding: '8px', display: 'flex', gap: '8px'}}>
           <input
             value={input}
@@ -1023,14 +2201,40 @@ const App = () => {
             onKeyPress={e => e.key === 'Enter' && handleSend()}
             placeholder="Type your message..."
             style={{flex: 1, padding: '14px', border: 'none', outline: 'none', fontSize: '15px', background: 'transparent'}}
+            disabled={!!activeJobPayment}
           />
-          <button onClick={() => handleSend()} className="btn-banana" style={{padding: '12px 20px'}}>Send</button>
+          <button 
+            onClick={() => handleSend()} 
+            className="btn-banana" 
+            style={{padding: '12px 20px'}}
+            disabled={!!activeJobPayment}
+          >
+            Send
+          </button>
         </div>
       </main>
+
+      {showNotifications && (
+        <NotificationsPanel
+          notifications={notifications}
+          onClose={() => setShowNotifications(false)}
+          onClear={clearNotifications}
+        />
+      )}
+
+      {toasts.map(toast => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
+        />
+      ))}
     </div>
   );
 };
 
+// ============ RENDER APP ============
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
