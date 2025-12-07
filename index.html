@@ -1107,14 +1107,36 @@ const LocationButton = ({ onLocationFound, isLoading }) => {
                 lat: lat,
                 lng: lng
               })
-            }).then(r => r.json());
+            });
             
-            if (response.success && response.address) {
-              onLocationFound(response.address);
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log("Location response:", data);
+            
+            if (data.success && data.address) {
+              // Call the callback with the address
+              onLocationFound(data.address);
+              
+              // Also update the input field
+              const input = document.querySelector('input[placeholder*="message"]');
+              if (input) {
+                input.value = data.address;
+                // Focus on the input for user to confirm/edit
+                input.focus();
+              }
+            } else {
+              // If no address found, use coordinates
+              onLocationFound(`My location is: ${lat}, ${lng}`);
             }
           } catch (err) {
             console.error("Geocoding error:", err);
+            // Fallback to coordinates
             onLocationFound(`My location is: ${lat}, ${lng}`);
+            // Show error toast
+            alert("Location found but address couldn't be determined. Please type your address.");
           }
           
           setLocating(false);
@@ -1122,13 +1144,31 @@ const LocationButton = ({ onLocationFound, isLoading }) => {
         (error) => {
           console.error("Location error:", error);
           setLocating(false);
-          alert("Unable to get location. Please type your address.");
+          
+          // More specific error messages
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              alert("Location permission denied. Please type your address or enable location services.");
+              break;
+            case error.POSITION_UNAVAILABLE:
+              alert("Location information unavailable. Please type your address.");
+              break;
+            case error.TIMEOUT:
+              alert("Location request timed out. Please type your address.");
+              break;
+            default:
+              alert("Unable to get location. Please type your address.");
+          }
         },
-        { enableHighAccuracy: true, timeout: 10000 }
+        { 
+          enableHighAccuracy: true, 
+          timeout: 15000, // Increased timeout
+          maximumAge: 0 
+        }
       );
     } else {
       setLocating(false);
-      alert("Location services not available");
+      alert("Location services not available in this browser. Please type your address.");
     }
   };
 
@@ -1137,17 +1177,36 @@ const LocationButton = ({ onLocationFound, isLoading }) => {
       onClick={handleLocation}
       disabled={locating || isLoading}
       style={{
-        padding: '8px 16px',
-        marginBottom: '8px',
-        background: locating ? '#E5E7EB' : '#F3F4F6',
-        border: '1px solid #D1D5DB',
-        borderRadius: '6px',
+        padding: '12px 16px',
+        marginBottom: '12px',
+        background: locating ? 'var(--gray-200)' : 'white',
+        color: locating ? 'var(--gray-500)' : 'var(--nano-black)',
+        border: '2px solid var(--nano-black)',
+        borderRadius: '8px',
         cursor: locating || isLoading ? 'not-allowed' : 'pointer',
-        fontSize: '12px'
+        fontSize: '14px',
+        fontWeight: '600',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        width: '100%',
+        boxShadow: '2px 2px 0 var(--nano-black)',
+        transition: 'all 0.2s'
       }}
+      className={locating || isLoading ? '' : 'btn-secondary'}
     >
-      {locating ? <LoadingSpinner size={12} /> : '📍'}
-      {locating ? 'Locating...' : 'Use My Current Location'}
+      {locating ? (
+        <>
+          <LoadingSpinner size={16} />
+          Locating...
+        </>
+      ) : (
+        <>
+          <span style={{ fontSize: '18px' }}>📍</span>
+          Use My Current Location
+        </>
+      )}
     </button>
   );
 };
@@ -2002,35 +2061,64 @@ const App = () => {
   };
 
   const clearNotifications = async () => {
-    if (notifications.length === 0) return;
-    
-    try {
-      const userId = userMode === 'customer' ? ctx.user_id : ctx.helper_id;
-      if (userId) {
-        await fetch(BACKEND_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'clear_notifications',
-            user_type: userMode,
-            user_id: userId
-          })
-        });
-      }
-      
-      setNotifications([]);
-    } catch (err) {
-      console.error('Failed to clear notifications:', err);
+  if (notifications.length === 0) return;
+  
+  try {
+    const userId = userMode === 'customer' ? ctx.user_id : ctx.helper_id;
+    if (userId) {
+      await fetch(BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'clear_notifications',
+          user_type: userMode,
+          user_id: userId
+        })
+      });
     }
+    
+    setNotifications([]);
+  } catch (err) {
+    console.error('Clear notifications error:', err);
+    addToast('Failed to clear notifications. Please try again.', 'error');
+  }
+};
+  
+  // Enhanced error handling
+  let errorMsg = `Sorry, there was an error: ${err.message}. Please try again.`;
+  
+  // Specific error for location issues
+  if (text.includes("My location is:")) {
+    errorMsg = "I couldn't identify your exact address from those coordinates. Could you please type your address manually?";
+  }
+  
+  setMessages(prev => [...prev, { role: 'ai', text: errorMsg }]);
+  addToast('Connection error. Please check your internet.', 'error');
+}
   };
 
   const handlePhotoUpload = (fileUrl) => {
     setCtx(prev => ({...prev, uploaded_photos: [...(prev.uploaded_photos || []), fileUrl]}));
   };
 
-  const handleGPSLocation = (address) => {
-    setInput(address);
-  };
+const handleGPSLocation = (address) => {
+  console.log("GPS location found:", address);
+  
+  // Set the input value
+  setInput(address);
+  
+  // Trigger send after a brief delay to ensure input is updated
+  setTimeout(() => {
+    // Check if this is a coordinate string or actual address
+    if (address.includes("My location is:")) {
+      // It's coordinates, send as-is
+      handleSend(address);
+    } else {
+      // It's an actual address, send it
+      handleSend(address);
+    }
+  }, 100);
+};
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -2234,8 +2322,30 @@ const App = () => {
   );
 };
 
+// Add this test function somewhere in your code
+const testLocation = () => {
+  if ("geolocation" in navigator) {
+    console.log("Geolocation is available");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        console.log("Position obtained:", pos.coords);
+        alert(`Lat: ${pos.coords.latitude}, Lng: ${pos.coords.longitude}`);
+      },
+      (err) => {
+        console.error("Error:", err);
+        alert(`Error: ${err.message}`);
+      }
+    );
+  } else {
+    alert("Geolocation not available");
+  }
+};
+
+// Call it somewhere to test
+// testLocation();
 // ============ RENDER APP ============
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
 </script>
 </body>
 </html>
