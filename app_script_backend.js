@@ -243,7 +243,45 @@ function buildIntelligenceContext_(message, ctx, mode) {
       time: ctx.service_time
     });
   }
+  // =============== GARAGE DETECTION =================
+
+function detectGarageType_(message, propertyData) {
+  var lower = message.toLowerCase();
   
+  // Check for explicit garage mentions
+  if (lower.includes('no garage') || lower.includes('no garage')) {
+    return 'none';
+  }
+  
+  if (lower.includes('1 car garage') || lower.includes('single garage')) {
+    return 'single';
+  }
+  
+  if (lower.includes('2 car garage') || lower.includes('double garage') || lower.includes('two car garage')) {
+    return 'double';
+  }
+  
+  if (lower.includes('3 car garage') || lower.includes('triple garage') || lower.includes('three car garage')) {
+    return 'triple';
+  }
+  
+  // If property data has garage info, use it
+  if (propertyData && propertyData.garage_spaces) {
+    if (propertyData.garage_spaces >= 3) return 'triple';
+    if (propertyData.garage_spaces === 2) return 'double';
+    if (propertyData.garage_spaces === 1) return 'single';
+    return 'none';
+  }
+  
+  // Default detection based on property size
+  if (propertyData && propertyData.square_feet) {
+    if (propertyData.square_feet > 3000) return 'triple';
+    if (propertyData.square_feet > 2000) return 'double';
+    if (propertyData.square_feet > 1000) return 'single';
+  }
+  
+  return 'unknown';
+}
   // 6. Determine what info is still needed
   intelligence.missing_info = determineMissingInfo_(ctx, mode);
   intelligence.should_ask = prioritizeQuestions_(intelligence.missing_info, ctx);
@@ -258,6 +296,12 @@ function determineMissingInfo_(ctx, mode) {
     if (!ctx.service_type) missing.push("service_type");
     if (!ctx.property_data) missing.push("address");
     if (!ctx.property_verified) missing.push("property_confirmation");
+        if (ctx.property_data && !ctx.garage_confirmed) {
+      var needsGarageInfo = ['snow_removal', 'house_cleaning', 'electrical', 'plumbing'];
+      if (needsGarageInfo.indexOf(ctx.service_type) !== -1) {
+        missing.push('garage_confirmation');
+      }
+    }
     
     // Service-specific requirements
     if (ctx.service_type === "snow_removal") {
@@ -330,6 +374,8 @@ function prioritizeQuestions_(missingInfo, ctx) {
 
 // =============== CUSTOMER CONVERSATION HANDLER =================
 
+// =============== CUSTOMER CONVERSATION HANDLER =================
+
 function handleCustomerConversation_(message, ctx, intelligence, history) {
   var responseText = "";
   var newContext = Object.assign({}, ctx);
@@ -338,17 +384,55 @@ function handleCustomerConversation_(message, ctx, intelligence, history) {
   var jobId = null;
   var jobStatus = null;
   
-  // Check for location from GPS
+  // Check for location from GPS - FIXED VERSION
   if (message.includes("My location is:") || message.match(/^\d+\.\d+,\s*-?\d+\.\d+$/)) {
     var coords = message.match(/([-\d.]+),\s*([-\d.]+)/);
     if (coords) {
       var lat = parseFloat(coords[1]);
       var lng = parseFloat(coords[2]);
       var addressData = reverseGeocode_(lat, lng);
-      if (addressData) {
+      if (addressData && addressData.address) {
         intelligence.detected_address = addressData.address;
         intelligence.property_data = getEnrichedPropertyData_(addressData.address);
+      } else {
+        // FIX: Return helpful message instead of mock data
+        return _json({
+          success: true,
+          text: "I couldn't identify your location from those coordinates. Could you please provide your address or try the location service again?",
+          newContext: newContext,
+          requires_address: true
+        });
       }
+    }
+  }
+  
+  // Detect and confirm garage type
+  if (newContext.property_data && !ctx.garage_confirmed) {
+    var detectedGarage = detectGarageType_(message, newContext.property_data);
+    if (detectedGarage !== 'unknown') {
+      newContext.garage_type = detectedGarage;
+      newContext.garage_confirmed = true;
+    } else if (newContext.property_data.garage_type) {
+      // Ask for confirmation
+      responseText += `\n\nI see your property has a ${newContext.property_data.garage_type}-car garage. Is this correct?`;
+      
+      // Add garage confirmation prompt
+      newContext.garage_prompt_shown = true;
+    }
+  }
+  
+  // Handle garage confirmation response
+  if (ctx.garage_prompt_shown && !ctx.garage_confirmed) {
+    var lowerMessage = message.toLowerCase();
+    if (lowerMessage.includes('yes') || lowerMessage.includes('correct') || lowerMessage.includes('right')) {
+      newContext.garage_confirmed = true;
+      newContext.garage_type = ctx.property_data.garage_type;
+    } else if (lowerMessage.includes('no') || lowerMessage.includes('wrong')) {
+      responseText = "What type of garage do you have? (none, single, double, or triple)";
+      newContext.garage_prompt_shown = false;
+    } else if (detectGarageType_(message, null) !== 'unknown') {
+      newContext.garage_type = detectGarageType_(message, null);
+      newContext.garage_confirmed = true;
     }
   }
   
@@ -379,18 +463,64 @@ function handleCustomerConversation_(message, ctx, intelligence, history) {
     newContext.customer_phone = phoneMatch[0].replace(/\D/g, '');
   }
   
-  // Extract date/time
-  if (message.includes("tomorrow")) {
-    var tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    newContext.service_date = tomorrow.toISOString().split('T')[0];
-  } else if (message.includes("today")) {
-    newContext.service_date = new Date().toISOString().split('T')[0];
+  // Extract date/time - ENHANCED VERSION
+  var dateMatch = message.match(/\b(today|tomorrow|next\s+\w+day)\b/i);
+  if (dateMatch && !ctx.service_date) {
+    var baseDate = new Date();
+    var dateStr = dateMatch[0].toLowerCase();
+    
+    if (dateStr === 'today') {
+      newContext.service_date = baseDate.toISOString().split('T')[0];
+    } else if (dateStr === 'tomorrow') {
+      baseDate.setDate(baseDate.getDate() + 1);
+      newContext.service_date = baseDate.toISOString().split('T')[0];
+    } else if (dateStr.includes('next')) {
+      // Handle "next monday", "next friday", etc.
+      var dayName = dateStr.replace('next', '').trim();
+      var days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+      var targetDay = days.indexOf(dayName);
+      if (targetDay !== -1) {
+        var currentDay = baseDate.getDay();
+        var daysToAdd = (targetDay + 7 - currentDay) % 7 || 7;
+        baseDate.setDate(baseDate.getDate() + daysToAdd);
+        newContext.service_date = baseDate.toISOString().split('T')[0];
+      }
+    }
   }
   
-  var timeMatch = message.match(/(\d{1,2})\s*(am|pm|AM|PM)/);
+  // Also check for specific dates like "December 15th" or "12/15"
+  var specificDateMatch = message.match(/\b(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})\b|\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}(?:st|nd|rd|th)?/i);
+  if (specificDateMatch && !ctx.service_date) {
+    // You could add more sophisticated date parsing here
+    newContext.service_date = specificDateMatch[0];
+  }
+  
+  // Extract time - ENHANCED VERSION
+  var timeMatch = message.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)?\b|\b(morning|afternoon|evening|noon|midnight)\b/i);
   if (timeMatch && !ctx.service_time) {
-    newContext.service_time = timeMatch[0];
+    var timeStr = timeMatch[0].toLowerCase();
+    
+    if (timeStr === 'morning') {
+      newContext.service_time = '9:00 AM';
+    } else if (timeStr === 'afternoon') {
+      newContext.service_time = '1:00 PM';
+    } else if (timeStr === 'evening') {
+      newContext.service_time = '5:00 PM';
+    } else if (timeStr === 'noon') {
+      newContext.service_time = '12:00 PM';
+    } else if (timeStr === 'midnight') {
+      newContext.service_time = '12:00 AM';
+    } else if (timeMatch[3]) {
+      // Handle "1pm", "2:30pm", etc.
+      var hour = parseInt(timeMatch[1]);
+      var minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+      var period = timeMatch[3].toLowerCase();
+      
+      if (period === 'pm' && hour < 12) hour += 12;
+      if (period === 'am' && hour === 12) hour = 0;
+      
+      newContext.service_time = hour + ':' + (minute < 10 ? '0' + minute : minute);
+    }
   }
   
   // Handle scope confirmation
@@ -510,7 +640,6 @@ function handleCustomerConversation_(message, ctx, intelligence, history) {
     job_status: jobStatus
   });
 }
-
 // =============== HELPER CONVERSATION HANDLER =================
 
 function handleHelperConversation_(message, ctx, intelligence, history) {
@@ -1784,7 +1913,7 @@ function getEnrichedPropertyData_(address) {
   var propertyData = {
     address: address,
     location: { 
-      lat: 40.7128 + (Math.random() * 0.1 - 0.05), // NYC area with some variation
+      lat: 40.7128 + (Math.random() * 0.1 - 0.05),
       lng: -74.0060 + (Math.random() * 0.1 - 0.05)
     },
     home_type: "Single Family Residential",
@@ -1794,7 +1923,24 @@ function getEnrichedPropertyData_(address) {
     stories: Math.floor(1 + Math.random() * 3),
     lot_size_sqft: Math.floor(5000 + Math.random() * 10000),
     driveway_length_ft: Math.floor(30 + Math.random() * 50),
-    garage_spaces: Math.floor(1 + Math.random() * 3),
+    
+    // ENHANCED: Better garage detection
+    garage_spaces: (() => {
+      var rand = Math.random();
+      if (rand < 0.3) return 0;      // 30% no garage
+      if (rand < 0.7) return 1;      // 40% single garage
+      if (rand < 0.9) return 2;      // 20% double garage
+      return 3;                      // 10% triple garage
+    })(),
+    
+    garage_type: (() => {
+      var spaces = propertyData.garage_spaces;
+      if (spaces === 0) return "none";
+      if (spaces === 1) return "single";
+      if (spaces === 2) return "double";
+      return "triple";
+    })(),
+    
     year_built: Math.floor(1950 + Math.random() * 70),
     zipcode: "10001"
   };
@@ -1889,36 +2035,62 @@ function handleReverseGeocode_(payload) {
       property_data: propertyData
     });
   } else {
-    return _json({ success: false, error: "Location not found" });
+    // FIX: Return helpful error message
+    return _json({ 
+      success: false, 
+      error: "Location not identified. Could you please provide your address manually?" 
+    });
   }
 }
 
 function reverseGeocode_(lat, lng) {
-  // For demo purposes
-  var addresses = [
-    "123 Main St, New York, NY 10001",
-    "456 Park Ave, Brooklyn, NY 11201",
-    "789 Broadway, Queens, NY 11101"
-  ];
+  // For demo purposes - in production, this would call Google Maps API
+  // Return null if coordinates don't resolve to a valid address
   
-  var randomAddress = addresses[Math.floor(Math.random() * addresses.length)];
+  // Check if coordinates are valid (not 0,0 or out of range)
+  if (Math.abs(lat) < 0.1 && Math.abs(lng) < 0.1) {
+    return null; // Invalid coordinates
+  }
   
-  return { 
-    address: randomAddress,
-    details: {
-      street_number: "123",
-      route: "Main St",
-      locality: "New York",
-      administrative_area_level_1: "NY",
-      country: "USA",
-      postal_code: "10001"
-    }
-  };
+  // For demo, only return addresses for "valid" coordinates
+  if (Math.abs(lat - 40.7128) < 5 && Math.abs(lng + 74.0060) < 5) {
+    var addresses = [
+      "123 Main St, New York, NY 10001",
+      "456 Park Ave, Brooklyn, NY 11201",
+      "789 Broadway, Queens, NY 11101"
+    ];
+    
+    var randomAddress = addresses[Math.floor(Math.random() * addresses.length)];
+    
+    return { 
+      address: randomAddress,
+      details: {
+        street_number: "123",
+        route: "Main St",
+        locality: "New York",
+        administrative_area_level_1: "NY",
+        country: "USA",
+        postal_code: "10001"
+      }
+    };
+  }
+  
+  // Return null for invalid/unrecognized coordinates
+  return null;
 }
-
 // =============== RESPONSE GENERATION =================
 
 function generateIntelligentResponse_(intelligence, ctx, history) {
+  // If we have a date but no time, ask for time
+  if (ctx.service_date && !ctx.service_time) {
+    return "What time would you like the service? (e.g., 9am, 1pm, this afternoon)";
+  }
+  
+  // If we have time but no date, ask for date
+  if (ctx.service_time && !ctx.service_date) {
+    return "What date would you like the service? (e.g., today, tomorrow, Dec 15)";
+  }
+  
   // Generate context-aware response
   if (intelligence.missing_info.length > 0) {
     return getQuestionForMissingInfo_(intelligence.missing_info[0], ctx);
@@ -1939,7 +2111,7 @@ function getQuestionForMissingInfo_(missingItem, ctx) {
     customer_email: "What's your email address?",
     customer_phone: "What's your phone number?",
     scope_confirmation: "Great! Let me confirm:\n• Service: " + ctx.service_type + "\n• Date: " + ctx.service_date + "\n• Time: " + ctx.service_time + "\n• Location: " + (ctx.property_data ? ctx.property_data.address : "") + "\n\nDoes this look correct?",
-    
+    garage_confirmation: `I see your property has a ${ctx.property_data?.garage_type || 'single'}-car garage. Is this correct? (yes/no)`,
     // Service-specific
     snow_depth: "How deep is the snow? (in inches)",
     include_walkway: "Should we include walkways?",
