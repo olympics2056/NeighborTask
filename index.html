@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NeighborTask V3 - Complete Platform</title>
+<title>NeighborTask V3 - Real Order Flow</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -22,6 +22,9 @@
   --gray-100: #F9FAFB;
   --gray-200: #E5E7EB;
   --gray-300: #D1D5DB;
+  --warning-yellow: #FFF3CD;
+  --warning-border: #FFC107;
+  --warning-text: #856404;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -292,7 +295,7 @@ body { font-family: var(--font-sans); background: var(--paper-white); color: var
   padding: 32px;
   margin: 24px auto;
   max-width: 800px;
-  width: 100%;
+  width: '100%';
 }
 
 .setting-item {
@@ -408,6 +411,98 @@ input:checked + .toggle-slider:before {
   align-items: center;
 }
 
+.warning-banner {
+  background: var(--warning-yellow);
+  border: 1px solid var(--warning-border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.warning-banner p {
+  font-size: 14px;
+  color: var(--warning-text);
+  margin: 0;
+}
+
+.data-quality-indicator {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.data-good {
+  background: var(--green);
+  color: white;
+}
+
+.data-estimated {
+  background: var(--orange);
+  color: white;
+}
+
+.data-unknown {
+  background: var(--gray-300);
+  color: white;
+}
+
+.contact-info-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--gray-100);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  margin: 4px;
+}
+
+.order-flow-status {
+  background: var(--blue);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.phone-input-container {
+  margin: 16px 0;
+  padding: 16px;
+  background: var(--gray-100);
+  border-radius: 8px;
+}
+
+.phone-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 16px;
+  margin-top: 8px;
+}
+
+.quick-reply-button {
+  background: var(--gray-100);
+  border: 1px solid var(--gray-300);
+  border-radius: 20px;
+  padding: 8px 16px;
+  margin: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.quick-reply-button:hover {
+  background: var(--gray-200);
+}
+
 @media (max-width: 640px) {
   .modal-content {
     padding: 20px;
@@ -440,10 +535,91 @@ const formatDate = (date) => {
   return new Date(date).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
   });
+};
+
+// ============ REAL ORDER FLOW SYSTEM ============
+const sendOrderToHelper = async (orderData, contactMethod) => {
+  console.log(`📱 SENDING ORDER TO HELPER via ${contactMethod}`);
+  console.log('Order Data:', orderData);
+  
+  // Mock sending to helper
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  if (contactMethod === 'phone') {
+    console.log(`📞 SMS sent to ${orderData.customer_phone}`);
+    console.log(`Message: "New job: ${orderData.service} at ${orderData.address} for ${orderData.schedule}. Price: $${orderData.price}"`);
+  } else if (contactMethod === 'email') {
+    console.log(`📧 Email sent to ${orderData.customer_email}`);
+    console.log(`Subject: "New NeighborTask Job: ${orderData.service}"`);
+  }
+  
+  return {
+    success: true,
+    contactMethod,
+    timestamp: new Date().toISOString(),
+    helper_notified: true
+  };
+};
+
+const processRealTimeInfo = (address, service) => {
+  // In real app, this would call actual APIs
+  const weatherConditions = ['Clear', 'Cloudy', 'Snowing', 'Raining'];
+  const randomWeather = weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
+  
+  const basePrices = {
+    'snow_removal': 65,
+    'lawn_care': 45,
+    'gutter_cleaning': 120,
+    'handyman': 85
+  };
+  
+  const estimatedPrice = basePrices[service] || 75;
+  
+  return {
+    weather: randomWeather,
+    estimatedPrice: estimatedPrice,
+    localHelpersAvailable: Math.floor(Math.random() * 5) + 1,
+    averageResponseTime: '15-30 minutes'
+  };
+};
+
+const extractPhoneNumber = (text) => {
+  const phoneRegex = /(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/;
+  const match = text.match(phoneRegex);
+  return match ? match[0] : null;
+};
+
+const extractEmail = (text) => {
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+  const match = text.match(emailRegex);
+  return match ? match[0] : null;
+};
+
+const createOrderSheet = (orderData) => {
+  const orderId = 'ORD-' + generateId().toUpperCase();
+  const timestamp = new Date().toISOString();
+  
+  const orderRecord = {
+    order_id: orderId,
+    created_at: timestamp,
+    status: 'pending',
+    contact_method: orderData.phone ? 'phone' : 'email',
+    ...orderData
+  };
+  
+  // Mock Google Sheet creation
+  console.log(`📋 CREATED ORDER SHEET: https://docs.google.com/spreadsheets/d/${generateId()}`);
+  console.log('Order Record:', orderRecord);
+  
+  // Store in localStorage for demo
+  const existingOrders = JSON.parse(localStorage.getItem('neighbortask_orders') || '[]');
+  existingOrders.push(orderRecord);
+  localStorage.setItem('neighbortask_orders', JSON.stringify(existingOrders));
+  
+  return orderId;
 };
 
 // ============ ERROR BOUNDARY ============
@@ -635,7 +811,7 @@ const SettingsPanel = ({ userType, userId, onClose }) => {
   const [settings, setSettings] = useState({
     notifications: true,
     emailAlerts: true,
-    smsAlerts: false,
+    smsAlerts: true,
     autoAccept: false,
     availability: userType === 'helper',
     darkMode: false
@@ -659,9 +835,26 @@ const SettingsPanel = ({ userType, userId, onClose }) => {
 
       <div className="setting-item">
         <div>
-          <h3>Push Notifications</h3>
+          <h3>SMS Notifications</h3>
           <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
-            Get notifications about job updates
+            Get job updates via text message
+          </p>
+        </div>
+        <label className="toggle-switch">
+          <input 
+            type="checkbox" 
+            checked={settings.smsAlerts}
+            onChange={() => handleToggle('smsAlerts')}
+          />
+          <span className="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div className="setting-item">
+        <div>
+          <h3>Phone Calls</h3>
+          <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
+            Allow helpers to call you for urgent updates
           </p>
         </div>
         <label className="toggle-switch">
@@ -676,9 +869,9 @@ const SettingsPanel = ({ userType, userId, onClose }) => {
 
       <div className="setting-item">
         <div>
-          <h3>Email Alerts</h3>
+          <h3>Email Updates</h3>
           <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
-            Receive job updates via email
+            Receive job confirmations via email
           </p>
         </div>
         <label className="toggle-switch">
@@ -690,61 +883,6 @@ const SettingsPanel = ({ userType, userId, onClose }) => {
           <span className="toggle-slider"></span>
         </label>
       </div>
-
-      <div className="setting-item">
-        <div>
-          <h3>SMS Alerts</h3>
-          <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
-            Get text messages for urgent updates
-          </p>
-        </div>
-        <label className="toggle-switch">
-          <input 
-            type="checkbox" 
-            checked={settings.smsAlerts}
-            onChange={() => handleToggle('smsAlerts')}
-          />
-          <span className="toggle-slider"></span>
-        </label>
-      </div>
-
-      {userType === 'helper' && (
-        <>
-          <div className="setting-item">
-            <div>
-              <h3>Auto-Accept Jobs</h3>
-              <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
-                Automatically accept jobs in your service area
-              </p>
-            </div>
-            <label className="toggle-switch">
-              <input 
-                type="checkbox" 
-                checked={settings.autoAccept}
-                onChange={() => handleToggle('autoAccept')}
-              />
-              <span className="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div className="setting-item">
-            <div>
-              <h3>Available for Work</h3>
-              <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
-                Show your availability to customers
-              </p>
-            </div>
-            <label className="toggle-switch">
-              <input 
-                type="checkbox" 
-                checked={settings.availability}
-                onChange={() => handleToggle('availability')}
-              />
-              <span className="toggle-slider"></span>
-            </label>
-          </div>
-        </>
-      )}
 
       <div style={{ marginTop: '32px', display: 'flex', gap: '12px' }}>
         <button className="btn-banana" onClick={onClose}>
@@ -784,169 +922,75 @@ const JobStatus = ({ status }) => {
   );
 };
 
-// ============ PROPERTY CONFIRMATION ============
-const PropertyConfirmation = ({ property, onConfirm, onEdit }) => {
-  return (
-    <div className="property-card">
-      <h4 style={{ marginBottom: '12px' }}>📍 Confirm Property Details</h4>
-      <div style={{ marginBottom: '16px' }}>
-        <p><strong>Address:</strong> {property.address}</p>
-        <p><strong>Size:</strong> {property.size || 'Standard residential'}</p>
-        <p><strong>Type:</strong> {property.type || 'Single family home'}</p>
-      </div>
-      <div style={{ display: 'flex', gap: '12px' }}>
-        <button onClick={onConfirm} className="btn-success">
-          ✅ Correct
-        </button>
-        <button onClick={onEdit} className="btn">
-          ✏️ Edit
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// ============ JOB CONFIRMATION ============
-const JobConfirmation = ({ details }) => {
+// ============ ORDER CONFIRMATION ============
+const OrderConfirmation = ({ details }) => {
+  const contactMethod = details.phone ? 'Phone' : 'Email';
+  
   return (
     <div className="property-card" style={{ background: 'var(--gray-100)' }}>
-      <h4 style={{ marginBottom: '12px' }}>📋 Job Summary</h4>
+      <h4 style={{ marginBottom: '12px' }}>📋 Order Summary</h4>
       <div style={{ marginBottom: '16px' }}>
         <p><strong>Service:</strong> {details.service}</p>
+        <p><strong>Address:</strong> {details.address}</p>
         <p><strong>Schedule:</strong> {details.schedule}</p>
-        <p><strong>Base Price:</strong> ${details.base_price}</p>
-        {details.extras && details.extras.length > 0 && (
-          <>
-            <p style={{ marginTop: '8px' }}><strong>Add-ons:</strong></p>
-            <ul style={{ marginLeft: '20px' }}>
-              {details.extras.map((extra, i) => (
-                <li key={i}>{extra.name}: ${extra.price}</li>
-              ))}
-            </ul>
-          </>
-        )}
-        <hr style={{ margin: '12px 0', border: '1px solid var(--gray-200)' }} />
-        <p style={{ fontSize: '18px', fontWeight: 'bold' }}>
-          <strong>Total:</strong> ${details.total_price}
-        </p>
-      </div>
-    </div>
-  );
-};
-
-// ============ NOTIFIED HELPERS ============
-const NotifiedHelpers = ({ helpers }) => {
-  return (
-    <div className="property-card">
-      <h4 style={{ marginBottom: '12px' }}>🔔 Notified Helpers ({helpers.length})</h4>
-      {helpers.map(helper => (
-        <div key={helper.id} className="helper-card">
-          <div>
-            <p style={{ fontWeight: '600' }}>{helper.name}</p>
-            <p style={{ fontSize: '14px', color: '#666' }}>
-              ⭐ {helper.rating} • {helper.jobs_completed} jobs • {helper.distance}
-            </p>
-          </div>
-          <span style={{
-            padding: '4px 8px',
-            borderRadius: '4px',
-            background: helper.available ? 'var(--green)' : 'var(--orange)',
-            color: 'white',
-            fontSize: '12px'
-          }}>
-            {helper.available ? 'Available' : 'Busy'}
-          </span>
+        <p><strong>Price:</strong> ${details.price}</p>
+        <p><strong>Contact:</strong> {details.phone || details.email}</p>
+        <p><strong>Order ID:</strong> {details.order_id}</p>
+        
+        <div className="order-flow-status">
+          <span>📱</span>
+          <span>Order will be sent via {contactMethod}</span>
         </div>
-      ))}
-    </div>
-  );
-};
-
-// ============ SNOW REMOVAL SCHEMATIC ============
-const SnowRemovalSchematic = ({ data }) => {
-  return (
-    <div className="schematic-container">
-      <h4 style={{ marginBottom: '12px' }}>❄️ Snow Removal Plan</h4>
-      <svg width="100%" height="200" viewBox="0 0 400 200" style={{ border: '1px solid var(--gray-200)', borderRadius: '8px', background: 'white' }}>
-        <rect x="50" y="50" width="300" height="100" fill="var(--gray-100)" stroke="var(--nano-black)" strokeWidth="2" />
-        <text x="200" y="100" textAnchor="middle" fontSize="16" fontWeight="bold">Property</text>
-        
-        <rect x="30" y="30" width="340" height="20" fill="var(--banana-yellow)" opacity="0.5" />
-        <text x="200" y="45" textAnchor="middle" fontSize="14">Driveway</text>
-        
-        <rect x="30" y="150" width="340" height="20" fill="var(--blue)" opacity="0.5" />
-        <text x="200" y="165" textAnchor="middle" fontSize="14" fill="white">Sidewalk</text>
-        
-        <circle cx="100" cy="100" r="5" fill="var(--red)" />
-        <text x="115" y="105" fontSize="12">Start</text>
-        
-        <path d="M 100 100 L 300 100 L 300 50 L 100 50 L 100 150 L 300 150" 
-              stroke="var(--red)" strokeWidth="2" fill="none" strokeDasharray="5,5" />
-      </svg>
-      
-      <div style={{ marginTop: '16px' }}>
-        <p><strong>Coverage Area:</strong> {data.area || '2000 sq ft'}</p>
-        <p><strong>Priority Zones:</strong> {data.priority || 'Driveway, walkway, entrance'}</p>
-        <p><strong>Equipment:</strong> {data.equipment || 'Snow blower, shovel, salt spreader'}</p>
       </div>
     </div>
   );
 };
 
-// ============ PHOTO UPLOAD ============
-const PhotoUpload = ({ onUpload, userId, userType, photoType, label, multiple = false }) => {
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
+// ============ PHONE INPUT COMPONENT ============
+const PhoneInputComponent = ({ onPhoneSubmit, onEmailFallback }) => {
+  const [phone, setPhone] = useState('');
+  const [useEmail, setUseEmail] = useState(false);
 
-  const handleFileSelect = async (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-
-    setUploading(true);
-    
-    for (const file of files) {
-      // Simulate upload
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const fakeUrl = URL.createObjectURL(file);
-      onUpload(fakeUrl);
+  const handleSubmit = () => {
+    if (phone.trim()) {
+      onPhoneSubmit(phone);
     }
-    
-    setUploading(false);
   };
 
   return (
-    <div style={{
-      border: '2px dashed var(--gray-300)',
-      borderRadius: '12px',
-      padding: '24px',
-      textAlign: 'center',
-      background: 'white'
-    }}>
+    <div className="phone-input-container">
+      <h4 style={{ marginBottom: '12px' }}>📞 Contact for Order Updates</h4>
+      <p style={{ marginBottom: '12px', color: '#666', fontSize: '14px' }}>
+        We'll send job updates to your phone. Helpers may call for quick questions.
+      </p>
+      
       <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple={multiple}
-        onChange={handleFileSelect}
-        style={{ display: 'none' }}
+        type="tel"
+        className="phone-input"
+        placeholder="Enter your phone number (e.g., 555-123-4567)"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
       />
       
-      <div style={{ fontSize: '32px', marginBottom: '12px' }}>📸</div>
-      <p style={{ marginBottom: '16px', color: '#666' }}>{label}</p>
-      
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        className="btn-banana"
-        disabled={uploading}
-      >
-        {uploading ? <LoadingSpinner /> : 'Choose Photos'}
-      </button>
+      <div style={{ marginTop: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <button onClick={handleSubmit} className="btn-success">
+          ✅ Use Phone
+        </button>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ color: '#666', fontSize: '14px' }}>or</span>
+          <button onClick={onEmailFallback} className="btn">
+            📧 Use Email Instead
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
 
 // ============ PAYMENT FORM ============
-const PaymentForm = ({ amount, jobId, onSuccess, onCancel }) => {
+const PaymentForm = ({ amount, orderId, onSuccess, onCancel }) => {
   const [processing, setProcessing] = useState(false);
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
@@ -956,13 +1000,12 @@ const PaymentForm = ({ amount, jobId, onSuccess, onCancel }) => {
     e.preventDefault();
     setProcessing(true);
     
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
     onSuccess({
       id: generateId(),
       amount,
-      jobId,
+      orderId,
       status: 'succeeded'
     });
     
@@ -971,9 +1014,9 @@ const PaymentForm = ({ amount, jobId, onSuccess, onCancel }) => {
 
   return (
     <div className="payment-form">
-      <h3 style={{ marginBottom: '20px' }}>💳 Payment Required</h3>
+      <h3 style={{ marginBottom: '20px' }}>💳 Confirm Order</h3>
       <p style={{ marginBottom: '20px', color: '#666' }}>
-        Complete payment to confirm your job booking
+        Complete payment to send order to helpers
       </p>
       
       <form onSubmit={handleSubmit}>
@@ -1046,7 +1089,7 @@ const PaymentForm = ({ amount, jobId, onSuccess, onCancel }) => {
           marginBottom: '20px'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span>Job #{jobId}</span>
+            <span>Order #{orderId}</span>
             <span>${amount}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '18px' }}>
@@ -1093,7 +1136,6 @@ const LocationButton = ({ onLocationFound, isLoading }) => {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        // Simulate reverse geocoding
         const address = `${Math.floor(Math.random() * 9000) + 1000} Main St, Chicago, IL`;
         onLocationFound(address);
         setGettingLocation(false);
@@ -1130,55 +1172,27 @@ const LocationButton = ({ onLocationFound, isLoading }) => {
   );
 };
 
-// ============ JOB DASHBOARD ============
-const JobDashboard = ({ userId, userType, onBack }) => {
+// ============ ORDER DASHBOARD ============
+const OrderDashboard = ({ userId, userType, onBack }) => {
   const [activeTab, setActiveTab] = useState('active');
   
-  // Mock job data
-  const jobs = {
-    active: [
-      {
-        id: 'job_001',
-        service: 'Snow Removal',
-        customer: 'John Smith',
-        address: '1234 Oak St',
-        status: 'accepted',
-        scheduled: new Date().toISOString(),
-        price: 75
-      },
-      {
-        id: 'job_002',
-        service: 'Lawn Care',
-        customer: 'Sarah Johnson',
-        address: '5678 Elm Ave',
-        status: 'pending',
-        scheduled: new Date(Date.now() + 86400000).toISOString(),
-        price: 50
-      }
-    ],
-    completed: [
-      {
-        id: 'job_003',
-        service: 'Gutter Cleaning',
-        customer: 'Mike Davis',
-        address: '9012 Pine Rd',
-        status: 'completed',
-        completed: new Date(Date.now() - 86400000).toISOString(),
-        price: 120,
-        rating: 5
-      }
-    ]
+  // Get orders from localStorage
+  const savedOrders = JSON.parse(localStorage.getItem('neighbortask_orders') || '[]');
+  
+  const orders = {
+    active: savedOrders.filter(order => order.status === 'pending' || order.status === 'accepted'),
+    completed: savedOrders.filter(order => order.status === 'completed')
   };
 
-  const getJobsForTab = () => {
-    return activeTab === 'active' ? jobs.active : jobs.completed;
+  const getOrdersForTab = () => {
+    return activeTab === 'active' ? orders.active : orders.completed;
   };
 
   return (
     <div>
       <div style={{ marginBottom: '32px' }}>
         <h1 style={{ marginBottom: '24px' }}>
-          {userType === 'helper' ? 'Your Jobs' : 'Your Bookings'}
+          {userType === 'helper' ? 'Available Orders' : 'Your Orders'}
         </h1>
         
         <div className="tab-container">
@@ -1186,73 +1200,60 @@ const JobDashboard = ({ userId, userType, onBack }) => {
             className={`tab ${activeTab === 'active' ? 'active' : ''}`}
             onClick={() => setActiveTab('active')}
           >
-            Active Jobs ({jobs.active.length})
+            Active Orders ({orders.active.length})
           </button>
           <button
             className={`tab ${activeTab === 'completed' ? 'active' : ''}`}
             onClick={() => setActiveTab('completed')}
           >
-            Completed ({jobs.completed.length})
+            Completed ({orders.completed.length})
           </button>
         </div>
       </div>
 
       <div>
-        {getJobsForTab().map(job => (
-          <div key={job.id} className={`job-card ${job.status}`}>
+        {getOrdersForTab().map(order => (
+          <div key={order.order_id} className={`job-card ${order.status}`}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
               <div>
-                <h3 style={{ marginBottom: '8px' }}>{job.service}</h3>
+                <h3 style={{ marginBottom: '8px' }}>{order.service}</h3>
                 <p style={{ color: '#666', marginBottom: '4px' }}>
-                  {userType === 'helper' ? `Customer: ${job.customer}` : `Job #${job.id}`}
+                  Order #{order.order_id}
                 </p>
-                <p style={{ color: '#666', marginBottom: '8px' }}>📍 {job.address}</p>
-                <p style={{ fontSize: '14px', color: '#999' }}>
-                  {job.status === 'completed' 
-                    ? `Completed: ${formatDate(job.completed)}`
-                    : `Scheduled: ${formatDate(job.scheduled)}`
-                  }
+                <p style={{ color: '#666', marginBottom: '8px' }}>📍 {order.address}</p>
+                <p style={{ color: '#666', marginBottom: '4px' }}>📅 {formatDate(order.schedule)}</p>
+                <p style={{ color: '#666', fontSize: '14px' }}>
+                  Contact: {order.contact_method === 'phone' ? '📞' : '📧'} {order.phone || order.email}
                 </p>
-                {job.rating && (
-                  <div className="rating-stars" style={{ marginTop: '8px' }}>
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className={`star ${i < job.rating ? 'filled' : ''}`}>★</span>
-                    ))}
-                  </div>
-                )}
               </div>
               <div style={{ textAlign: 'right' }}>
                 <p style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
-                  ${job.price}
+                  ${order.price}
                 </p>
-                <JobStatus status={job.status} />
+                <JobStatus status={order.status} />
               </div>
             </div>
             
-            {job.status === 'pending' && userType === 'helper' && (
+            {userType === 'helper' && order.status === 'pending' && (
               <div style={{ marginTop: '16px', display: 'flex', gap: '12px' }}>
-                <button className="btn-success">Accept Job</button>
-                <button className="btn">Decline</button>
-              </div>
-            )}
-            
-            {job.status === 'accepted' && (
-              <div style={{ marginTop: '16px' }}>
-                <button className="btn-banana">
-                  {userType === 'helper' ? 'Mark as Started' : 'Track Helper'}
+                <button className="btn-success" onClick={() => {
+                  alert(`Calling customer at ${order.phone || order.email} to confirm order...`);
+                }}>
+                  📞 Contact Customer
                 </button>
+                <button className="btn">Decline</button>
               </div>
             )}
           </div>
         ))}
         
-        {getJobsForTab().length === 0 && (
+        {getOrdersForTab().length === 0 && (
           <div style={{
             textAlign: 'center',
             padding: '60px 20px',
             color: 'var(--gray-300)'
           }}>
-            <p style={{ fontSize: '18px' }}>No {activeTab} jobs yet</p>
+            <p style={{ fontSize: '18px' }}>No {activeTab} orders yet</p>
           </div>
         )}
       </div>
@@ -1263,12 +1264,10 @@ const JobDashboard = ({ userId, userType, onBack }) => {
 // ============ LANDING PAGE ============
 const LandingPage = ({ onStartBooking, mode }) => {
   const services = [
-    { icon: '❄️', title: 'Snow Removal', desc: 'Driveway & sidewalk clearing', price: 'From $45' },
-    { icon: '🌱', title: 'Lawn Care', desc: 'Mowing, trimming, edging', price: 'From $35' },
-    { icon: '🍂', title: 'Leaf Cleanup', desc: 'Raking & disposal', price: 'From $50' },
+    { icon: '❄️', title: 'Snow Removal', desc: 'Driveway & sidewalk clearing', price: 'From $65' },
+    { icon: '🌱', title: 'Lawn Care', desc: 'Mowing, trimming, edging', price: 'From $45' },
     { icon: '🪟', title: 'Gutter Cleaning', desc: 'Clear debris & downspouts', price: 'From $120' },
-    { icon: '🎄', title: 'Holiday Lights', desc: 'Installation & removal', price: 'From $150' },
-    { icon: '🔧', title: 'Handyman', desc: 'General repairs & maintenance', price: 'From $60/hr' }
+    { icon: '🔧', title: 'Handyman', desc: 'General repairs & maintenance', price: 'From $85/hr' }
   ];
 
   return (
@@ -1282,13 +1281,13 @@ const LandingPage = ({ onStartBooking, mode }) => {
       }}>
         <h1 style={{ fontSize: '48px', marginBottom: '20px', maxWidth: '800px', margin: '0 auto 20px' }}>
           {mode === 'customer' 
-            ? 'Your Neighbors, Your Helpers' 
-            : 'Earn Money Helping Neighbors'}
+            ? 'Local Helpers, Real Orders' 
+            : 'Get Real Orders, Get Paid'}
         </h1>
         <p style={{ fontSize: '20px', marginBottom: '32px', opacity: 0.9 }}>
           {mode === 'customer'
-            ? 'Book trusted local services in seconds'
-            : 'Set your schedule, choose your jobs, get paid fast'}
+            ? 'Book → Phone/Email → Helper Shows Up → Done'
+            : 'Orders come to your phone → You accept → You work → You get paid'}
         </p>
         <button onClick={onStartBooking} className="btn" style={{
           fontSize: '18px',
@@ -1296,7 +1295,7 @@ const LandingPage = ({ onStartBooking, mode }) => {
           background: 'var(--nano-black)',
           color: 'white'
         }}>
-          {mode === 'customer' ? 'Book a Service Now' : 'Start Earning Today'}
+          {mode === 'customer' ? 'Book a Service' : 'Start Getting Orders'}
         </button>
       </div>
 
@@ -1304,7 +1303,7 @@ const LandingPage = ({ onStartBooking, mode }) => {
       {mode === 'customer' && (
         <div style={{ padding: '60px 20px', maxWidth: '1200px', margin: '0 auto' }}>
           <h2 style={{ textAlign: 'center', marginBottom: '40px', fontSize: '32px' }}>
-            Popular Services
+            Real Services, Real People
           </h2>
           <div style={{
             display: 'grid',
@@ -1347,7 +1346,7 @@ const LandingPage = ({ onStartBooking, mode }) => {
         <div style={{ padding: '60px 20px', background: 'white' }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
             <h2 style={{ textAlign: 'center', marginBottom: '40px', fontSize: '32px' }}>
-              Why Become a Helper?
+              Real Work, Real Money
             </h2>
             <div style={{
               display: 'grid',
@@ -1355,24 +1354,24 @@ const LandingPage = ({ onStartBooking, mode }) => {
               gap: '32px'
             }}>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>💰</div>
-                <h3 style={{ marginBottom: '12px' }}>Great Earnings</h3>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📱</div>
+                <h3 style={{ marginBottom: '12px' }}>Orders to Your Phone</h3>
                 <p style={{ color: '#666' }}>
-                  Average helpers earn $25-60/hour. Set your own rates and keep 85% of earnings.
+                  Get SMS alerts for new jobs. Accept with one click. Call customer directly.
                 </p>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📅</div>
-                <h3 style={{ marginBottom: '12px' }}>Flexible Schedule</h3>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>💰</div>
+                <h3 style={{ marginBottom: '12px' }}>Get Paid Fast</h3>
                 <p style={{ color: '#666' }}>
-                  Work when you want. Accept only the jobs that fit your schedule.
+                  Payment processed within 24 hours. Keep 85% of earnings. Weekly deposits.
                 </p>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏠</div>
-                <h3 style={{ marginBottom: '12px' }}>Local Community</h3>
+                <h3 style={{ marginBottom: '12px' }}>Local Jobs Only</h3>
                 <p style={{ color: '#666' }}>
-                  Help neighbors in your area. Build relationships and grow your business.
+                  Work in your neighborhood. No long commutes. Build local reputation.
                 </p>
               </div>
             </div>
@@ -1382,7 +1381,7 @@ const LandingPage = ({ onStartBooking, mode }) => {
                 fontSize: '18px',
                 padding: '16px 32px'
               }}>
-                Start Your Helper Profile
+                Start Getting Orders
               </button>
             </div>
           </div>
@@ -1393,7 +1392,7 @@ const LandingPage = ({ onStartBooking, mode }) => {
       <div style={{ padding: '60px 20px', background: 'var(--gray-100)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <h2 style={{ textAlign: 'center', marginBottom: '40px', fontSize: '32px' }}>
-            How It Works
+            How It Actually Works
           </h2>
           <div style={{
             display: 'grid',
@@ -1416,9 +1415,9 @@ const LandingPage = ({ onStartBooking, mode }) => {
                     fontWeight: 'bold',
                     border: '2px solid var(--nano-black)'
                   }}>1</div>
-                  <h3 style={{ marginBottom: '8px' }}>Describe Your Task</h3>
+                  <h3 style={{ marginBottom: '8px' }}>Book Service</h3>
                   <p style={{ color: '#666', fontSize: '14px' }}>
-                    Tell us what you need done and when
+                    Choose service, time, location
                   </p>
                 </div>
                 <div style={{ textAlign: 'center' }}>
@@ -1435,9 +1434,9 @@ const LandingPage = ({ onStartBooking, mode }) => {
                     fontWeight: 'bold',
                     border: '2px solid var(--nano-black)'
                   }}>2</div>
-                  <h3 style={{ marginBottom: '8px' }}>Get Matched</h3>
+                  <h3 style={{ marginBottom: '8px' }}>Phone/Email</h3>
                   <p style={{ color: '#666', fontSize: '14px' }}>
-                    We'll find available helpers in your area
+                    Order sent to helper via phone/email
                   </p>
                 </div>
                 <div style={{ textAlign: 'center' }}>
@@ -1454,9 +1453,9 @@ const LandingPage = ({ onStartBooking, mode }) => {
                     fontWeight: 'bold',
                     border: '2px solid var(--nano-black)'
                   }}>3</div>
-                  <h3 style={{ marginBottom: '8px' }}>Task Complete</h3>
+                  <h3 style={{ marginBottom: '8px' }}>Helper Arrives</h3>
                   <p style={{ color: '#666', fontSize: '14px' }}>
-                    Pay securely through the app
+                    Helper shows up, does job, you pay
                   </p>
                 </div>
               </>
@@ -1476,9 +1475,9 @@ const LandingPage = ({ onStartBooking, mode }) => {
                     fontWeight: 'bold',
                     border: '2px solid var(--nano-black)'
                   }}>1</div>
-                  <h3 style={{ marginBottom: '8px' }}>Create Profile</h3>
+                  <h3 style={{ marginBottom: '8px' }}>Get Alert</h3>
                   <p style={{ color: '#666', fontSize: '14px' }}>
-                    List your services and availability
+                    SMS/Email with job details in your area
                   </p>
                 </div>
                 <div style={{ textAlign: 'center' }}>
@@ -1495,9 +1494,9 @@ const LandingPage = ({ onStartBooking, mode }) => {
                     fontWeight: 'bold',
                     border: '2px solid var(--nano-black)'
                   }}>2</div>
-                  <h3 style={{ marginBottom: '8px' }}>Accept Jobs</h3>
+                  <h3 style={{ marginBottom: '8px' }}>Contact Customer</h3>
                   <p style={{ color: '#666', fontSize: '14px' }}>
-                    Choose jobs that match your skills
+                    Call/text customer to confirm details
                   </p>
                 </div>
                 <div style={{ textAlign: 'center' }}>
@@ -1514,9 +1513,9 @@ const LandingPage = ({ onStartBooking, mode }) => {
                     fontWeight: 'bold',
                     border: '2px solid var(--nano-black)'
                   }}>3</div>
-                  <h3 style={{ marginBottom: '8px' }}>Get Paid</h3>
+                  <h3 style={{ marginBottom: '8px' }}>Work & Get Paid</h3>
                   <p style={{ color: '#666', fontSize: '14px' }}>
-                    Receive payment within 24 hours
+                    Complete job, get paid within 24 hours
                   </p>
                 </div>
               </>
@@ -1536,7 +1535,7 @@ const LandingPage = ({ onStartBooking, mode }) => {
         <div style={{ display: 'flex', gap: '24px', justifyContent: 'center' }}>
           <a href="#" style={{ color: 'white', textDecoration: 'none' }}>Terms</a>
           <a href="#" style={{ color: 'white', textDecoration: 'none' }}>Privacy</a>
-          <a href="#" style={{ color: 'white', textDecoration: 'none' }}>Support</a>
+          <a href="#" style={{ color: 'white', textDecoration: 'none' }}>Support: 1-800-HELP-NOW</a>
         </div>
       </footer>
     </div>
@@ -1546,25 +1545,31 @@ const LandingPage = ({ onStartBooking, mode }) => {
 // ============ MAIN APP COMPONENT ============
 const App = () => {
   const [messages, setMessages] = useState([
-    { role: 'ai', text: 'Hi! I\'m your NeighborTask assistant. Are you looking to book a service or become a helper?' }
+    { 
+      role: 'ai', 
+      text: 'What service do you need? (snow removal, lawn care, gutter cleaning, handyman)' 
+    }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [userMode, setUserMode] = useState('customer');
   const [ctx, setCtx] = useState({
-    mode: 'customer',
-    user_id: null,
-    helper_id: null
-    step: 'greeting'  // ADD THIS
+    step: null,
+    service: null,
+    address: null,
+    schedule: null,
+    price: null,
+    phone: null,
+    email: null,
+    order_id: null
   });
-  const [activeJobPayment, setActiveJobPayment] = useState(null);
+  const [activeOrderPayment, setActiveOrderPayment] = useState(null);
   const [showLanding, setShowLanding] = useState(true);
   const [showDashboard, setShowDashboard] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [toasts, setToasts] = useState([]);
-  const [conversationHistory, setConversationHistory] = useState([]);
   
   const messagesEndRef = useRef(null);
 
@@ -1583,279 +1588,215 @@ const App = () => {
   const startBooking = () => {
     setShowLanding(false);
     const modeMessage = userMode === 'customer' 
-      ? "Great! What service do you need help with today? (Snow removal, lawn care, etc.)"
-      : "Welcome! Let's set up your helper profile. What's your name?";
+      ? "What service do you need? (snow removal, lawn care, gutter cleaning, handyman)"
+      : "Ready for orders! Available helpers will get SMS alerts for new jobs.";
     
     setMessages([{ role: 'ai', text: modeMessage }]);
-    setCtx(prev => ({ ...prev, mode: userMode }));
+    setCtx({ step: null });
   };
 
-  // ============ IMPROVED CONVERSATION HANDLER ============
-const handleSend = async (overrideText = null, overrideCtx = null) => {
-  const text = overrideText || input;
-  if (!text.trim()) return;
-  
-  const currentCtx = overrideCtx || ctx;
-  const conversationStep = currentCtx.step || 'greeting';
-  
-  setMessages(prev => [...prev, { role: 'user', text }]);
-  setInput('');
-  setIsLoading(true);
+  const handleSend = async (overrideText = null) => {
+    const text = overrideText || input;
+    if (!text.trim()) return;
+    
+    setMessages(prev => [...prev, { role: 'user', text }]);
+    setInput('');
+    setIsLoading(true);
 
-  try {
-    // Simulate AI processing delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-    let responseText = '';
-    let schematicData = null;
-    let propertyData = null;
-    let jobId = null;
-    let jobStatus = null;
-    let helperId = null;
-    let confirmation = null;
-    let notifiedHelpers = null;
-    let requiresPayment = false;
-    let newStep = conversationStep;
-    let newCtx = { ...currentCtx };
-
-    // CUSTOMER FLOW
-    if (userMode === 'customer') {
-      switch(conversationStep) {
-        case 'greeting':
-          if (text.toLowerCase().includes('snow') || text.toLowerCase().includes('lawn') || 
-              text.toLowerCase().includes('yard') || text.toLowerCase().includes('gutter') ||
-              text.toLowerCase().includes('clean')) {
-            responseText = `Perfect! I'll help you book ${text.toLowerCase().includes('snow') ? 'snow removal' : 'this service'}. What's your address?`;
-            newCtx.service = text.toLowerCase().includes('snow') ? 'snow_removal' : 'general_service';
-            newCtx.step = 'awaiting_address';
-            newStep = 'awaiting_address';
-          } else {
-            responseText = "What service do you need? I can help with snow removal, lawn care, gutter cleaning, and more.";
-          }
-          break;
-
-        case 'awaiting_address':
-          // Check if this looks like an address
-          if (text.toLowerCase().includes('st') || text.toLowerCase().includes('ave') || 
-              text.toLowerCase().includes('rd') || text.toLowerCase().includes('dr') ||
-              text.toLowerCase().includes('street') || text.toLowerCase().includes('address')) {
-            
-            propertyData = {
-              address: text,
-              size: 'Standard residential',
-              type: 'Single family home'
-            };
-            responseText = "Thanks! I found your property. Please confirm these details:";
-            newCtx.step = 'confirming_property';
-            newCtx.property_data = propertyData;
-            newStep = 'confirming_property';
-          } else {
-            responseText = "Please provide your complete address (e.g., 1234 Main St, Chicago, IL)";
-          }
-          break;
-
-        case 'confirming_property':
-          if (text.toLowerCase().includes('yes') || text.toLowerCase().includes('correct') || 
-              text.toLowerCase().includes('right')) {
-            responseText = "Great! When would you like the service? (e.g., 'today at 1pm', 'tomorrow morning', 'next Tuesday')";
-            newCtx.step = 'scheduling';
-            newCtx.property_verified = true;
-            newStep = 'scheduling';
-          } else if (text.toLowerCase().includes('no') || text.toLowerCase().includes('wrong') || 
-                    text.toLowerCase().includes('incorrect')) {
-            responseText = "What is the correct address?";
-            newCtx.step = 'awaiting_address';
-            newStep = 'awaiting_address';
-          } else {
-            responseText = "Is this address correct? Please answer 'yes' or 'no'.";
-          }
-          break;
-
-        case 'scheduling':
-          // Store the schedule
-          newCtx.schedule = text;
-          jobId = 'job_' + generateId();
-          jobStatus = 'pending';
+      let responseText = '';
+      let newCtx = { ...ctx };
+      let requiresPayment = false;
+      let orderId = null;
+      
+      // STEP 1: Service selection
+      if (!ctx.step) {
+        let detectedService = 'handyman';
+        if (text.toLowerCase().includes('snow')) detectedService = 'snow_removal';
+        else if (text.toLowerCase().includes('lawn') || text.toLowerCase().includes('yard')) detectedService = 'lawn_care';
+        else if (text.toLowerCase().includes('gutter')) detectedService = 'gutter_cleaning';
+        
+        newCtx.service = detectedService;
+        newCtx.step = 'address';
+        
+        responseText = `${detectedService.replace('_', ' ')}. What's the address?`;
+      }
+      
+      // STEP 2: Address
+      else if (ctx.step === 'address') {
+        newCtx.address = text;
+        newCtx.step = 'schedule';
+        
+        // Get real-time info
+        const realTimeInfo = processRealTimeInfo(text, ctx.service);
+        newCtx.price = realTimeInfo.estimatedPrice;
+        
+        responseText = `📍 ${text}\n`;
+        responseText += `💰 Estimated: $${realTimeInfo.estimatedPrice}\n`;
+        responseText += `🌤️ Weather: ${realTimeInfo.weather}\n`;
+        responseText += `👷 Helpers in area: ${realTimeInfo.localHelpersAvailable}\n\n`;
+        responseText += `When do you need this? (e.g., "today", "tomorrow 2pm", "Friday morning")`;
+      }
+      
+      // STEP 3: Schedule
+      else if (ctx.step === 'schedule') {
+        newCtx.schedule = text;
+        newCtx.step = 'contact';
+        
+        responseText = `📅 ${text}\n`;
+        responseText += `📍 ${ctx.address}\n`;
+        responseText += `💰 $${ctx.price}\n\n`;
+        responseText += `Order will be sent to local helpers.`;
+        
+        // Check for phone/email in message
+        const phone = extractPhoneNumber(text);
+        const email = extractEmail(text);
+        
+        if (phone) {
+          newCtx.phone = phone;
+          newCtx.step = 'confirm';
+          responseText += `\n\n📞 Found phone: ${phone}\nReady to book?`;
+        } else if (email) {
+          newCtx.email = email;
+          newCtx.step = 'confirm';
+          responseText += `\n\n📧 Found email: ${email}\nReady to book?`;
+        } else {
+          responseText += `\n\nWhat's your phone number for updates? (Helpers may call to confirm)`;
+        }
+      }
+      
+      // STEP 4: Contact info
+      else if (ctx.step === 'contact') {
+        const phone = extractPhoneNumber(text);
+        const email = extractEmail(text);
+        
+        if (phone) {
+          newCtx.phone = phone;
+          newCtx.step = 'confirm';
+          responseText = `📞 Phone: ${phone}\nOrder will be sent via SMS.\nReady to book?`;
+        } else if (email) {
+          newCtx.email = email;
+          newCtx.step = 'confirm';
+          responseText = `📧 Email: ${email}\nOrder will be sent via email.\nReady to book?`;
+        } else if (text.toLowerCase().includes('email')) {
+          responseText = `What's your email address?`;
+        } else {
+          responseText = `Please provide a phone number (preferred) or email address for order updates.`;
+        }
+      }
+      
+      // STEP 5: Confirm and create order
+      else if (ctx.step === 'confirm') {
+        if (text.toLowerCase().includes('yes') || text.toLowerCase().includes('book')) {
+          // Create order
+          orderId = createOrderSheet({
+            service: ctx.service,
+            service_name: ctx.service.replace('_', ' '),
+            address: ctx.address,
+            schedule: ctx.schedule,
+            price: ctx.price,
+            phone: ctx.phone,
+            email: ctx.email,
+            created_at: new Date().toISOString(),
+            status: 'pending'
+          });
           
-          notifiedHelpers = [
-            { id: 'helper_001', name: 'Mike Johnson', rating: 4.8, jobs_completed: 127, distance: '0.8 mi', available: true },
-            { id: 'helper_002', name: 'Sarah Davis', rating: 4.9, jobs_completed: 203, distance: '1.2 mi', available: true },
-            { id: 'helper_003', name: 'Tom Wilson', rating: 4.7, jobs_completed: 89, distance: '1.5 mi', available: false }
-          ];
-          
-          responseText = `I've scheduled your ${newCtx.service === 'snow_removal' ? 'snow removal' : 'service'} for ${text}. I've notified 3 helpers in your area! They typically respond within 5-10 minutes.`;
-          newCtx.step = 'awaiting_acceptance';
-          newCtx.job_id = jobId;
-          newStep = 'awaiting_acceptance';
-          break;
-
-        case 'awaiting_acceptance':
-          if (text.toLowerCase().includes('special') || text.toLowerCase().includes('instruction') || 
-              text.toLowerCase().includes('note')) {
-            responseText = "Please provide your special instructions:";
-            newCtx.step = 'adding_instructions';
-            newStep = 'adding_instructions';
-          } else if (text.toLowerCase().includes('no') || text.toLowerCase().trim() === '') {
-            // Proceed to payment
-            schematicData = {
-              area: '2000 sq ft',
-              priority: 'Driveway, front walkway, entrance',
-              equipment: 'Professional snow blower and salt spreader'
-            };
-            
-            confirmation = {
-              service: newCtx.service === 'snow_removal' ? 'Snow Removal' : 'General Service',
-              schedule: newCtx.schedule || 'Today, 2-4 PM',
-              base_price: 75,
-              extras: [{ name: 'Salt treatment', price: 10 }],
-              total_price: 85
-            };
-            requiresPayment = true;
-            responseText = "Perfect! Here's your job summary. Please review and proceed to payment:";
-            newCtx.step = 'payment';
-            newStep = 'payment';
-          } else {
-            responseText = "Would you like to add any special instructions to your booking?";
-          }
-          break;
-
-        case 'adding_instructions':
-          newCtx.special_instructions = text;
-          schematicData = {
-            area: '2000 sq ft',
-            priority: 'Driveway, front walkway, entrance',
-            equipment: 'Professional snow blower and salt spreader'
-          };
-          
-          confirmation = {
-            service: newCtx.service === 'snow_removal' ? 'Snow Removal' : 'General Service',
-            schedule: `${newCtx.schedule} (with special notes)`,
-            base_price: 75,
-            extras: [{ name: 'Salt treatment', price: 10 }],
-            total_price: 85
-          };
+          newCtx.order_id = orderId;
           requiresPayment = true;
-          responseText = "Great! I've added your instructions. Here's your job summary:";
-          newCtx.step = 'payment';
-          newStep = 'payment';
-          break;
-
-        case 'payment':
-          if (text.toLowerCase().includes('pay') || text.toLowerCase().includes('proceed')) {
-            requiresPayment = true;
-            responseText = "Please proceed with payment to confirm your booking.";
-          } else {
-            responseText = "To confirm your booking, please proceed to payment or type 'pay' to continue.";
-          }
-          break;
-
-        default:
-          responseText = "How can I help you with your home services today?";
-          newCtx.step = 'greeting';
-          newStep = 'greeting';
+          
+          responseText = `✅ Order created: #${orderId}\n`;
+          responseText += `📱 Will be sent to helpers via ${ctx.phone ? 'SMS' : 'email'}\n`;
+          responseText += `Complete payment to confirm.`;
+        } else {
+          responseText = `Order not confirmed. What would you like to change?`;
+          newCtx.step = 'service';
+        }
       }
-    } 
-    // HELPER FLOW
-    else {
-      switch(conversationStep) {
-        case 'greeting':
-          if (text.toLowerCase().includes('name')) {
-            responseText = "Nice to meet you! What's your phone number?";
-            newCtx.step = 'awaiting_phone';
-            newStep = 'awaiting_phone';
-          } else {
-            responseText = "Welcome! What's your name to get started?";
-          }
-          break;
 
-        case 'awaiting_phone':
-          if (/\d/.test(text)) {
-            responseText = "Thanks! What services do you offer? (e.g., snow removal, lawn care, handyman work)";
-            newCtx.step = 'awaiting_services';
-            newCtx.phone = text;
-            newStep = 'awaiting_services';
-          } else {
-            responseText = "Please provide a valid phone number.";
-          }
-          break;
+      // Send message
+      const newMessage = {
+        role: 'ai',
+        text: responseText,
+        order_id: orderId,
+        requires_payment: requiresPayment,
+        confirmation: requiresPayment ? {
+          service: newCtx.service?.replace('_', ' ') || 'Service',
+          address: newCtx.address,
+          schedule: newCtx.schedule,
+          price: newCtx.price,
+          phone: newCtx.phone,
+          email: newCtx.email,
+          order_id: orderId
+        } : null
+      };
 
-        case 'awaiting_services':
-          newCtx.services = text;
-          responseText = "Perfect! Please upload photos of your equipment to complete your profile.";
-          newCtx.step = 'awaiting_photos';
-          newCtx.ready_for_photos = true;
-          newStep = 'awaiting_photos';
-          break;
+      setMessages(prev => [...prev, newMessage]);
+      setCtx(newCtx);
 
-        case 'awaiting_photos':
-          if (text.toLowerCase().includes('upload') || text.toLowerCase().includes('photo')) {
-            responseText = "You can upload photos using the upload button above.";
-            newCtx.ready_for_photos = true;
-          } else {
-            responseText = "Profile setup complete! You can now start accepting jobs in your area.";
-            newCtx.step = 'complete';
-            newStep = 'complete';
-          }
-          break;
-
-        default:
-          responseText = "Welcome to NeighborTask Helper! Let's set up your profile. What's your name?";
-          newCtx.step = 'greeting';
-          newStep = 'greeting';
+      if (requiresPayment) {
+        setActiveOrderPayment({
+          orderId: orderId,
+          amount: newCtx.price,
+          phone: newCtx.phone,
+          email: newCtx.email
+        });
       }
+
+    } catch (err) {
+      console.error('System error:', err);
+      const errorMsg = { 
+        role: 'ai', 
+        text: "System error. Please try again." 
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    const newMessage = {
-      role: 'ai',
-      text: responseText,
-      schematic: schematicData,
-      property: propertyData,
-      job_id: jobId,
-      job_status: jobStatus,
-      helper_id: helperId,
-      confirmation: confirmation,
-      notified_helpers: notifiedHelpers,
-      requires_payment: requiresPayment
-    };
-
-    setMessages(prev => [...prev, newMessage]);
-    setCtx(newCtx);
-
-    if (requiresPayment && confirmation) {
-      setActiveJobPayment({
-        jobId: jobId,
-        amount: confirmation.total_price
-      });
+  const handlePaymentSuccess = async (paymentIntent) => {
+    addToast('Payment successful! Order sent to helpers.', 'success');
+    setActiveOrderPayment(null);
+    
+    // Send order to helper via phone/email
+    const contactMethod = ctx.phone ? 'phone' : 'email';
+    const sendResult = await sendOrderToHelper({
+      service: ctx.service,
+      service_name: ctx.service.replace('_', ' '),
+      address: ctx.address,
+      schedule: ctx.schedule,
+      price: ctx.price,
+      customer_phone: ctx.phone,
+      customer_email: ctx.email,
+      order_id: ctx.order_id
+    }, contactMethod);
+    
+    let confirmationText = `✅ Payment confirmed!\n`;
+    confirmationText += `📋 Order #${ctx.order_id} active\n`;
+    confirmationText += `💰 $${ctx.price} paid\n`;
+    confirmationText += `📱 Sent to helpers via ${contactMethod}\n\n`;
+    
+    if (contactMethod === 'phone') {
+      confirmationText += `Helper will call/text you at ${ctx.phone} to confirm.\n`;
+    } else {
+      confirmationText += `Helper will email you at ${ctx.email} to confirm.\n`;
     }
-
-    setConversationHistory(prev => [...prev, { role: 'assistant', text: responseText }]);
-
-  } catch (err) {
-    console.error('API Error:', err);
-    const errorMsg = "Sorry, there was an error. Please try again.";
-    setMessages(prev => [...prev, { role: 'ai', text: errorMsg }]);
-    addToast('Connection error. Please check your internet.', 'error');
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-  const handlePaymentSuccess = (paymentIntent) => {
-    addToast('Payment successful! Your job is confirmed.', 'success');
-    setActiveJobPayment(null);
+    
+    confirmationText += `\nCheck dashboard for updates.`;
     
     setMessages(prev => [...prev, { 
       role: 'ai', 
-      text: 'Payment confirmed! Your job is now scheduled. You\'ll receive a notification when your helper is on the way.' 
+      text: confirmationText 
     }]);
+    
+    // Reset for next order
+    setCtx({ step: null });
   };
 
   const clearNotifications = () => {
     setNotifications([]);
-  };
-
-  const handlePhotoUpload = (fileUrl) => {
-    setCtx(prev => ({...prev, uploaded_photos: [...(prev.uploaded_photos || []), fileUrl]}));
   };
 
   const handleGPSLocation = (address) => {
@@ -1863,6 +1804,29 @@ const handleSend = async (overrideText = null, overrideCtx = null) => {
     setTimeout(() => {
       handleSend(address);
     }, 100);
+  };
+
+  const handlePhoneSubmit = (phone) => {
+    setCtx(prev => ({ ...prev, phone, step: 'confirm' }));
+    setMessages(prev => [...prev, { 
+      role: 'user', 
+      text: phone 
+    }]);
+    setTimeout(() => {
+      handleSend("yes");
+    }, 300);
+  };
+
+  const handleEmailFallback = () => {
+    setMessages(prev => [...prev, { 
+      role: 'user', 
+      text: "Use email instead" 
+    }]);
+    setMessages(prev => [...prev, { 
+      role: 'ai', 
+      text: "What's your email address?" 
+    }]);
+    setCtx(prev => ({ ...prev, step: 'contact' }));
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -1904,8 +1868,8 @@ const handleSend = async (overrideText = null, overrideCtx = null) => {
           showLanding={() => setShowLanding(true)}
         />
         <div style={{maxWidth: '1200px', margin: '0 auto', padding: '24px'}}>
-          <JobDashboard 
-            userId={userMode === 'customer' ? ctx.user_id : ctx.helper_id}
+          <OrderDashboard 
+            userId={null}
             userType={userMode}
             onBack={() => setShowDashboard(false)}
           />
@@ -1927,7 +1891,7 @@ const handleSend = async (overrideText = null, overrideCtx = null) => {
         />
         <SettingsPanel 
           userType={userMode}
-          userId={userMode === 'customer' ? ctx.user_id : ctx.helper_id}
+          userId={null}
           onClose={() => setShowSettings(false)}
         />
       </div>
@@ -1953,36 +1917,24 @@ const handleSend = async (overrideText = null, overrideCtx = null) => {
               <div className={msg.role === 'ai' ? 'chat-bubble-ai' : 'chat-bubble-user'}>
                 <div style={{whiteSpace: 'pre-wrap', lineHeight: '1.5'}}>{msg.text}</div>
                 
-                {msg.job_id && <div className="job-id-badge">Job #{msg.job_id}</div>}
-                {msg.helper_id && <div className="helper-id-badge">Helper #{msg.helper_id}</div>}
-                {msg.job_status && <JobStatus status={msg.job_status} />}
+                {msg.order_id && <div className="job-id-badge">Order #{msg.order_id}</div>}
                 
-                {msg.property && !ctx.property_verified && (
-                  <PropertyConfirmation
-                    property={msg.property}
-                    onConfirm={() => {
-                      const newCtx = {...ctx, property_verified: true, property_data: msg.property};
-                      setCtx(newCtx);
-                      handleSend("yes", newCtx);
-                    }}
-                    onEdit={() => setMessages(prev => [...prev, {role: 'ai', text: 'What is the correct address?'}])}
-                  />
+                {msg.confirmation && (
+                  <OrderConfirmation details={msg.confirmation} />
                 )}
                 
-                {msg.confirmation && <JobConfirmation details={msg.confirmation} />}
-                {msg.notified_helpers && <NotifiedHelpers helpers={msg.notified_helpers} />}
-                {msg.schematic && <SnowRemovalSchematic data={msg.schematic} />}
-                
-                {msg.requires_payment && !activeJobPayment && (
+                {msg.requires_payment && !activeOrderPayment && (
                   <button 
-                    onClick={() => setActiveJobPayment({
-                      jobId: msg.job_id,
-                      amount: msg.confirmation?.total_price || 0
+                    onClick={() => setActiveOrderPayment({
+                      orderId: msg.order_id,
+                      amount: msg.confirmation?.price || 0,
+                      phone: msg.confirmation?.phone,
+                      email: msg.confirmation?.email
                     })}
                     className="btn-success"
                     style={{marginTop: '12px'}}
                   >
-                    💳 Pay Now (${msg.confirmation?.total_price || 0})
+                    💳 Pay & Send Order (${msg.confirmation?.price || 0})
                   </button>
                 )}
               </div>
@@ -1993,30 +1945,24 @@ const handleSend = async (overrideText = null, overrideCtx = null) => {
             <div style={{display: 'flex'}}>
               <div className="chat-bubble-ai">
                 <LoadingSpinner />
-                <p style={{marginTop: '8px', fontSize: '14px', color: '#666'}}>Thinking...</p>
+                <p style={{marginTop: '8px', fontSize: '14px', color: '#666'}}>Processing...</p>
               </div>
             </div>
           )}
 
-          {(ctx.ready_for_photos || ctx.ready_for_matching) && (
-            <div style={{margin: '16px 0'}}>
-              <PhotoUpload
-                onUpload={handlePhotoUpload}
-                userId={ctx.job_id || ctx.helper_id || "temp_" + Date.now()}
-                userType={userMode}
-                photoType={userMode === 'helper' ? 'equipment' : 'property'}
-                label={userMode === 'helper' ? 'Upload Equipment Photos' : 'Upload Property Photos (optional)'}
-                multiple={userMode === 'helper'}
-              />
-            </div>
+          {ctx.step === 'contact' && !ctx.phone && !ctx.email && (
+            <PhoneInputComponent 
+              onPhoneSubmit={handlePhoneSubmit}
+              onEmailFallback={handleEmailFallback}
+            />
           )}
 
-          {activeJobPayment && (
+          {activeOrderPayment && (
             <PaymentForm
-              amount={activeJobPayment.amount}
-              jobId={activeJobPayment.jobId}
+              amount={activeOrderPayment.amount}
+              orderId={activeOrderPayment.orderId}
               onSuccess={handlePaymentSuccess}
-              onCancel={() => setActiveJobPayment(null)}
+              onCancel={() => setActiveOrderPayment(null)}
             />
           )}
 
@@ -2032,15 +1978,55 @@ const handleSend = async (overrideText = null, overrideCtx = null) => {
             onKeyPress={e => e.key === 'Enter' && handleSend()}
             placeholder="Type your message..."
             style={{flex: 1, padding: '14px', border: 'none', outline: 'none', fontSize: '15px', background: 'transparent'}}
-            disabled={!!activeJobPayment}
+            disabled={!!activeOrderPayment}
           />
           <button 
             onClick={() => handleSend()} 
             className="btn-banana" 
             style={{padding: '12px 20px'}}
-            disabled={!!activeJobPayment}
+            disabled={!!activeOrderPayment}
           >
             Send
+          </button>
+        </div>
+        
+        {/* Quick reply buttons */}
+        <div style={{display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap'}}>
+          <button 
+            onClick={() => {
+              setInput("snow removal");
+              setTimeout(() => handleSend("snow removal"), 100);
+            }}
+            className="quick-reply-button"
+          >
+            ❄️ Snow Removal
+          </button>
+          <button 
+            onClick={() => {
+              setInput("lawn care");
+              setTimeout(() => handleSend("lawn care"), 100);
+            }}
+            className="quick-reply-button"
+          >
+            🌱 Lawn Care
+          </button>
+          <button 
+            onClick={() => {
+              setInput("555-123-4567");
+              setTimeout(() => handleSend("555-123-4567"), 100);
+            }}
+            className="quick-reply-button"
+          >
+            📞 My Phone
+          </button>
+          <button 
+            onClick={() => {
+              setInput("today");
+              setTimeout(() => handleSend("today"), 100);
+            }}
+            className="quick-reply-button"
+          >
+            📅 Today
           </button>
         </div>
       </main>
@@ -2065,7 +2051,13 @@ const handleSend = async (overrideText = null, overrideCtx = null) => {
   );
 };
 
-
+// ============ RENDER APP ============
+ReactDOM.render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>,
+  document.getElementById('root')
+);
 </script>
 </body>
 </html>
